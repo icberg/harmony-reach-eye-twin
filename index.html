@@ -1,0 +1,742 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Harmony Reach Eye Twin: operator capture, remote specialist review of a 3D eye twin, and patient result. Student concept prototype, not a medical device.">
+<title>Harmony Reach Eye Twin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<style>
+/* Layout: instrument console — role switch on top, work panel on the left, live 3D stage on the right; stacks on phones. */
+:root {
+  --bg: #EEF2F5; --surface: #FFFFFF; --sunken: #F5F7F9; --ink: #13202E; --muted: #5A6878; --line: #D7DEE5;
+  --accent: #0E7484; --accent-ink: #FFFFFF; --accent-soft: #DDF0F2;
+  --ok: #1B8553; --ok-soft: #DDF3E8; --warn: #A86A0E; --warn-soft: #FBEFD9; --danger: #BE342D; --danger-soft: #FBE3E1;
+  --stage: #0A121C; --stage-ink: #C9D5E1;
+  --display: "Figtree", "Segoe UI", system-ui, sans-serif;
+  --body: "Figtree", "Segoe UI", system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0B1219; --surface: #111B25; --sunken: #0E1720; --ink: #E4EBF1; --muted: #94A3B3; --line: #223243;
+  --accent: #42B9C9; --accent-ink: #062027; --accent-soft: #123139;
+  --ok: #43C98A; --ok-soft: #12301F; --warn: #E2A944; --warn-soft: #33270F; --danger: #F2716A; --danger-soft: #3A1715;
+  --stage: #060C13; --stage-ink: #C9D5E1; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #0B1219; --surface: #111B25; --sunken: #0E1720; --ink: #E4EBF1; --muted: #94A3B3; --line: #223243;
+  --accent: #42B9C9; --accent-ink: #062027; --accent-soft: #123139;
+  --ok: #43C98A; --ok-soft: #12301F; --warn: #E2A944; --warn-soft: #33270F; --danger: #F2716A; --danger-soft: #3A1715;
+  --stage: #060C13; --stage-ink: #C9D5E1; color-scheme: dark }
+
+* { box-sizing: border-box }
+html, body { background: var(--bg) }
+body { color: var(--ink); font-family: var(--body); font-size: 15px; line-height: 1.5; padding-inline: 16px; padding-block: 0 32px }
+.wrap { max-width: 1240px; margin: 0 auto }
+h1, h2, h3 { font-family: var(--display); margin: 0; text-wrap: balance; line-height: 1.2 }
+button, input, select, textarea { font: inherit; color: inherit }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px }
+
+/* header */
+.top { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--bg); padding-block: 14px 12px; display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--line) }
+.brand { display: flex; align-items: center; gap: 10px; min-width: 0 }
+.brand-mark { width: 30px; height: 30px; border-radius: 50%; background: radial-gradient(circle at 50% 50%, var(--stage) 0 28%, var(--accent) 29% 58%, var(--surface) 59%); border: 2px solid var(--accent); flex: none }
+.brand h1 { font-size: 18px; font-weight: 800; letter-spacing: -0.01em }
+.brand small { display: block; color: var(--muted); font-size: 12px; font-weight: 500 }
+.roles { display: flex; background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 3px; gap: 2px }
+.roles button { border: 0; background: transparent; padding: 7px 16px; border-radius: 999px; font-weight: 600; cursor: pointer; color: var(--muted) }
+.roles button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink) }
+.sync { font-size: 12px; font-weight: 600; color: var(--muted); display: flex; align-items: center; gap: 6px }
+.sync i { width: 8px; height: 8px; border-radius: 50%; background: var(--warn) }
+.sync.live i { background: var(--ok); box-shadow: 0 0 0 3px var(--ok-soft) }
+
+/* layout */
+.view { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); gap: 20px; padding-block: 20px }
+.view.doctor { grid-template-columns: minmax(0, 300px) minmax(0, 1fr) }
+@media (max-width: 860px) { .view, .view.doctor { grid-template-columns: minmax(0, 1fr) } }
+.col { display: flex; flex-direction: column; gap: 16px; min-width: 0 }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 18px; display: flex; flex-direction: column; gap: 14px; min-width: 0 }
+.panel h2 { font-size: 17px; font-weight: 700 }
+.step-head { display: flex; gap: 10px; align-items: baseline }
+.step-no { font-family: var(--mono); font-size: 12px; font-weight: 700; color: var(--accent); background: var(--accent-soft); border-radius: 6px; padding: 2px 7px }
+.hint { color: var(--muted); font-size: 13px; margin: 0 }
+label.f { display: flex; flex-direction: column; gap: 5px; font-size: 13px; font-weight: 600; color: var(--muted) }
+input[type=text], input[type=number], select, textarea { background: var(--sunken); border: 1px solid var(--line); border-radius: 9px; padding: 9px 11px; width: 100%; min-width: 0 }
+textarea { resize: vertical; min-height: 70px }
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px }
+.yn { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--sunken) }
+.yn span { font-weight: 600; font-size: 14px }
+.yn.alert { border-color: var(--danger); background: var(--danger-soft) }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; flex: none }
+.seg button { border: 0; padding: 5px 12px; background: var(--surface); cursor: pointer; font-weight: 600; font-size: 13px; color: var(--muted) }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--bg) }
+.btn { border: 1px solid var(--line); background: var(--surface); padding: 9px 14px; border-radius: 10px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 8px }
+.btn:hover { border-color: var(--accent) }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink) }
+.btn.danger { background: var(--danger); border-color: var(--danger); color: #fff }
+.btn:disabled { opacity: .5; cursor: not-allowed }
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center }
+.filebtn { position: relative; overflow: hidden }
+.filebtn input { position: absolute; inset: 0; opacity: 0; cursor: pointer }
+
+/* capture */
+.capture { position: relative; background: var(--stage); border-radius: 12px; overflow: hidden; aspect-ratio: 4 / 3; max-width: 100%; touch-action: none }
+.capture canvas { width: 100%; height: 100%; display: block; cursor: crosshair }
+.capture .tag { position: absolute; left: 10px; top: 10px; font-size: 12px; font-weight: 600; background: rgba(6,12,19,.75); color: #E4EBF1; padding: 4px 9px; border-radius: 999px }
+input[type=range] { width: 100%; accent-color: var(--accent) }
+
+/* quality */
+.checks { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px }
+.check { border: 1px solid var(--line); border-radius: 10px; padding: 10px; background: var(--sunken); display: flex; flex-direction: column; gap: 2px }
+.check b { font-family: var(--mono); font-size: 18px }
+.check small { color: var(--muted); font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em }
+.check.good b { color: var(--ok) } .check.fair b { color: var(--warn) } .check.poor b { color: var(--danger) }
+.ai-box { font-size: 14px; border-left: 3px solid var(--accent); padding: 6px 10px; background: var(--sunken); border-radius: 0 8px 8px 0 }
+
+/* stage */
+.stage { position: relative; background: var(--stage); border-radius: 14px; overflow: hidden; aspect-ratio: 4 / 3; max-width: 100%; min-height: 260px }
+.stage canvas { display: block; width: 100% !important; height: 100% !important; cursor: grab }
+.stage-ui { position: absolute; left: 12px; right: 12px; top: 12px; display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; pointer-events: none }
+.stage-ui > * { pointer-events: auto }
+.stage-label { font-family: var(--mono); font-size: 11px; font-weight: 700; letter-spacing: .06em; color: var(--stage-ink); background: rgba(6,12,19,.7); padding: 5px 9px; border-radius: 7px }
+.stage .seg { border-color: #2A3B4D } .stage .seg button { background: #111C27; color: #9FB0C1 } .stage .seg button[aria-pressed="true"] { background: #42B9C9; color: #062027 }
+.stage-foot { position: absolute; left: 12px; bottom: 10px; right: 12px; font-size: 12px; color: #93A4B5; pointer-events: none }
+
+/* queue */
+.queue { display: flex; flex-direction: column; gap: 8px; max-height: 70vh; overflow: auto }
+.qitem { text-align: left; border: 1px solid var(--line); background: var(--sunken); border-radius: 11px; padding: 11px 12px; cursor: pointer; display: grid; grid-template-columns: 1fr auto; gap: 2px 10px }
+.qitem[aria-current="true"] { border-color: var(--accent); background: var(--accent-soft) }
+.qitem .code { font-family: var(--mono); font-weight: 700; font-size: 13px }
+.qitem .who { font-size: 14px; font-weight: 600; grid-column: 1 }
+.qitem .when { font-size: 12px; color: var(--muted); grid-column: 1 }
+.qitem .pill { grid-row: 1 / span 2; grid-column: 2; align-self: start }
+.pill { display: inline-block; font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; padding: 3px 8px; border-radius: 999px; white-space: nowrap }
+.pill.urgent, .pill.red { background: var(--danger-soft); color: var(--danger) }
+.pill.waiting { background: var(--warn-soft); color: var(--warn) }
+.pill.green { background: var(--ok-soft); color: var(--ok) }
+.pill.amber { background: var(--warn-soft); color: var(--warn) }
+.pill.sample { background: var(--sunken); color: var(--muted); border: 1px solid var(--line) }
+.facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin: 0 }
+.facts div { background: var(--sunken); border: 1px solid var(--line); border-radius: 10px; padding: 9px 11px }
+.facts dt { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .06em }
+.facts dd { margin: 0; font-weight: 600; font-variant-numeric: tabular-nums }
+.history { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px }
+.history button { flex: none; border: 1px solid var(--line); background: var(--sunken); border-radius: 10px; padding: 6px; cursor: pointer; display: flex; gap: 8px; align-items: center; font-size: 12px; font-weight: 600 }
+.history button[aria-current="true"] { border-color: var(--accent) }
+.history img { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; background: var(--stage) }
+.triage { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px }
+.triage button { border: 2px solid var(--line); background: var(--sunken); border-radius: 10px; padding: 10px 8px; cursor: pointer; font-weight: 700; display: flex; flex-direction: column; gap: 2px; align-items: flex-start; text-align: left }
+.triage button small { font-weight: 500; color: var(--muted); font-size: 12px }
+.triage button[data-l="green"][aria-pressed="true"] { border-color: var(--ok); background: var(--ok-soft) }
+.triage button[data-l="amber"][aria-pressed="true"] { border-color: var(--warn); background: var(--warn-soft) }
+.triage button[data-l="red"][aria-pressed="true"] { border-color: var(--danger); background: var(--danger-soft) }
+.empty { color: var(--muted); font-size: 14px; border: 1px dashed var(--line); border-radius: 12px; padding: 22px; text-align: center; display: flex; flex-direction: column; gap: 10px; align-items: center }
+.banner { font-size: 13px; padding: 8px 12px; border-radius: 9px; background: var(--warn-soft); color: var(--warn); font-weight: 600 }
+.banner.urgent { background: var(--danger-soft); color: var(--danger) }
+
+/* patient */
+.codebox { font-family: var(--mono); font-size: 34px; font-weight: 700; letter-spacing: .08em; text-align: center; padding: 14px; border-radius: 12px; background: var(--accent-soft); color: var(--accent); user-select: all }
+.timeline { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px }
+.timeline li { display: grid; grid-template-columns: 26px 1fr; gap: 10px; align-items: start }
+.timeline .dot { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--line); background: var(--surface); display: grid; place-items: center; font-size: 12px; font-weight: 800 }
+.timeline li.done .dot { background: var(--ok); border-color: var(--ok); color: var(--surface) }
+.timeline li.now .dot { border-color: var(--accent); box-shadow: 0 0 0 4px var(--accent-soft) }
+.timeline b { display: block; font-size: 14px }
+.timeline span { color: var(--muted); font-size: 13px }
+.result { border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 6px }
+.result.green { background: var(--ok-soft) } .result.amber { background: var(--warn-soft) } .result.red { background: var(--danger-soft) }
+.result h3 { font-size: 20px }
+.result.green h3 { color: var(--ok) } .result.amber h3 { color: var(--warn) } .result.red h3 { color: var(--danger) }
+.foot { color: var(--muted); font-size: 12px; text-align: center; padding-top: 8px }
+.toast { position: fixed; left: 50%; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--ink); color: var(--bg); padding: 10px 16px; border-radius: 10px; font-weight: 600; font-size: 14px; z-index: 20; max-width: calc(100% - 32px) }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important } }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <div class="brand-mark" aria-hidden="true"></div>
+      <div><h1>Harmony Reach Eye Twin</h1><small>Operator capture · specialist review · patient result</small></div>
+    </div>
+    <nav class="roles" aria-label="Role">
+      <button id="role-operator" data-role="operator" aria-pressed="true">Operator</button>
+      <button id="role-doctor" data-role="doctor" aria-pressed="false">Doctor</button>
+      <button id="role-patient" data-role="patient" aria-pressed="false">Patient</button>
+    </nav>
+    <div class="sync" id="sync"><i></i><span id="sync-text">Connecting…</span></div>
+  </header>
+
+  <!-- OPERATOR -->
+  <section class="view" id="view-operator">
+    <div class="col">
+      <form class="panel" id="op-intake" autocomplete="off">
+        <div class="step-head"><span class="step-no">1</span><h2>Intake</h2></div>
+        <div class="grid2">
+          <label class="f">Patient name or ID<input type="text" id="op-name" placeholder="e.g. Demo patient A" maxlength="60"></label>
+          <label class="f">Age<input type="number" id="op-age" min="1" max="120" placeholder="58"></label>
+        </div>
+        <div class="yn"><span>Diagnosed with diabetes?</span><div class="seg" data-field="diabetes"><button type="button" data-v="yes" aria-pressed="false">Yes</button><button type="button" data-v="no" aria-pressed="true">No</button></div></div>
+        <div class="yn" id="yn-loss"><span>Sudden vision loss in the last 48 h?</span><div class="seg" data-field="visionLoss"><button type="button" data-v="yes" aria-pressed="false">Yes</button><button type="button" data-v="no" aria-pressed="true">No</button></div></div>
+        <div class="yn"><span>Eye being captured</span><div class="seg" data-field="eye"><button type="button" data-v="OD" aria-pressed="true">Right (OD)</button><button type="button" data-v="OS" aria-pressed="false">Left (OS)</button></div></div>
+      </form>
+
+      <section class="panel">
+        <div class="step-head"><span class="step-no">2</span><h2>Capture the eye</h2></div>
+        <p class="hint">Take a close-up photo of one eye in good light, looking straight at the camera. Then tap the centre of the pupil and size the ring to the edge of the iris.</p>
+        <div class="capture" id="cap-wrap"><canvas id="cap-canvas" width="800" height="600" aria-label="Captured eye photo with iris alignment ring"></canvas><span class="tag" id="cap-tag">Sample eye loaded</span></div>
+        <label class="f">Iris ring size<input type="range" id="cap-r" min="0.05" max="0.48" step="0.005" value="0.2"></label>
+        <div class="row">
+          <label class="btn primary filebtn">Take or choose photo<input type="file" id="cap-file" accept="image/*" capture="user"></label>
+          <button class="btn" type="button" id="cap-auto">Auto-centre on pupil</button>
+          <button class="btn" type="button" id="cap-sample">Use sample eye</button>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="step-head"><span class="step-no">3</span><h2>Image quality</h2></div>
+        <div class="checks" id="iqa"></div>
+        <div class="row"><button class="btn" type="button" id="ai-check" hidden>Ask Claude to check the photo</button><span class="hint" id="ai-state"></span></div>
+        <div class="ai-box" id="ai-out" hidden></div>
+      </section>
+
+      <section class="panel">
+        <div class="step-head"><span class="step-no">4</span><h2>Retina image <span class="hint" style="font-weight:500">(optional)</span></h2></div>
+        <p class="hint">If a fundus camera is connected, add its retinal photo. The doctor then gets a 3D retina twin built from it. Without one, the retina view is simulated.</p>
+        <div class="row">
+          <label class="btn filebtn">Add fundus photo<input type="file" id="fundus-file" accept="image/*"></label>
+          <span class="hint" id="fundus-state">No fundus photo — retina view will be simulated</span>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="step-head"><span class="step-no">5</span><h2>Send to Harmony</h2></div>
+        <div class="banner urgent" id="op-urgent" hidden>Sudden vision loss reported: this visit goes to the top of the doctor's queue as urgent.</div>
+        <button class="btn primary" type="button" id="op-send">Send visit to specialist</button>
+        <div id="op-sent" hidden>
+          <p class="hint">Visit sent. Give this code to the patient so they can follow their result:</p>
+          <div class="codebox" id="op-code"></div>
+          <div class="row"><button class="btn" type="button" id="op-copy">Copy code</button><button class="btn" type="button" id="op-next">Next patient</button></div>
+        </div>
+      </section>
+    </div>
+
+    <div class="col">
+      <div class="stage" id="op-stage">
+        <div class="stage-ui"><span class="stage-label">LIVE TWIN PREVIEW</span>
+          <div class="seg" data-stage="op"><button data-m="eye" aria-pressed="true">Eye</button><button data-m="retina" aria-pressed="false">Retina</button></div></div>
+        <div class="stage-foot">Drag to rotate · scroll or pinch to zoom</div>
+      </div>
+      <p class="hint">The twin updates as you align the iris. The doctor sees exactly this model, rebuilt from the photo on their side.</p>
+    </div>
+  </section>
+
+  <!-- DOCTOR -->
+  <section class="view doctor" id="view-doctor" hidden>
+    <div class="col">
+      <section class="panel">
+        <div class="row" style="justify-content:space-between"><h2>Review queue</h2><span class="hint" id="q-count"></span></div>
+        <div class="queue" id="queue"></div>
+        <button class="btn" type="button" id="seed-sample">Add a sample visit</button>
+      </section>
+    </div>
+    <div class="col" id="dr-detail">
+      <div class="empty" id="dr-empty"><b>No visit selected</b>Visits appear here the moment an operator sends them. Pick one from the queue, or add a sample visit to try the review.</div>
+      <div id="dr-body" class="col" hidden>
+        <div class="banner urgent" id="dr-urgent" hidden>Patient reported sudden vision loss in the last 48 hours.</div>
+        <div class="banner" id="dr-old" hidden></div>
+        <div class="stage" id="dr-stage">
+          <div class="stage-ui"><span class="stage-label" id="dr-label">3D EYE TWIN</span>
+            <div class="seg" data-stage="dr"><button data-m="eye" aria-pressed="true">Eye</button><button data-m="retina" aria-pressed="false">Retina</button></div></div>
+          <div class="stage-foot" id="dr-foot">Drag to rotate · scroll or pinch to zoom</div>
+        </div>
+        <section class="panel">
+          <div class="row" style="justify-content:space-between"><h2 id="dr-title">Visit</h2><span class="pill" id="dr-pill"></span></div>
+          <dl class="facts" id="dr-facts"></dl>
+          <div id="dr-hist-wrap"><p class="hint" style="margin-bottom:6px">Earlier visits for this patient</p><div class="history" id="dr-hist"></div></div>
+        </section>
+        <section class="panel">
+          <h2>Specialist decision</h2>
+          <p class="hint">The model shows what was captured; the clinical call is yours.</p>
+          <div class="triage" id="dr-triage">
+            <button type="button" data-l="green" aria-pressed="false">Green<small>Routine · 12-month recall</small></button>
+            <button type="button" data-l="amber" aria-pressed="false">Amber<small>Re-check in 3–6 months</small></button>
+            <button type="button" data-l="red" aria-pressed="false">Red<small>Same-day referral + escort</small></button>
+          </div>
+          <label class="f">Note for the patient<textarea id="dr-note" placeholder="Plain language, e.g. 'Small changes seen. We'll check again at the next van visit.'"></textarea></label>
+          <button class="btn primary" type="button" id="dr-send" disabled>Send result to patient</button>
+        </section>
+      </div>
+    </div>
+  </section>
+
+  <!-- PATIENT -->
+  <section class="view" id="view-patient" hidden>
+    <div class="col">
+      <form class="panel" id="pt-form">
+        <h2>Your eye check</h2>
+        <p class="hint">Enter the code the van operator gave you.</p>
+        <div class="row"><input type="text" id="pt-code" placeholder="HR-XXXXX" maxlength="12" style="flex:1;font-family:var(--mono);text-transform:uppercase"><button class="btn primary" type="submit">Open</button></div>
+        <p class="hint" id="pt-msg"></p>
+      </form>
+      <section class="panel" id="pt-status" hidden>
+        <h2 id="pt-hello">Your visit</h2>
+        <ol class="timeline" id="pt-timeline"></ol>
+        <div id="pt-result"></div>
+      </section>
+    </div>
+    <div class="col">
+      <div class="stage" id="pt-stage">
+        <div class="stage-ui"><span class="stage-label">YOUR EYE, IN 3D</span>
+          <div class="seg" data-stage="pt"><button data-m="eye" aria-pressed="true">Eye</button><button data-m="retina" aria-pressed="false">Retina</button></div></div>
+        <div class="stage-foot">Drag to rotate · scroll or pinch to zoom</div>
+      </div>
+      <p class="hint" id="pt-stage-note">Showing a sample eye until you open your visit.</p>
+    </div>
+  </section>
+
+  <p class="foot">Prototype for a product-development course. The 3D twin is a visual model rebuilt from a photo; it is not a medical device and gives no diagnosis.</p>
+</div>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+(() => {
+"use strict";
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const toast = (msg) => { const t = $("toast"); t.textContent = msg; t.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => t.hidden = true, 2600); };
+const ago = (ms) => { const s = Math.round((Date.now() - ms) / 1000); if (s < 60) return "just now"; if (s < 3600) return Math.round(s/60) + " min ago"; if (s < 86400) return Math.round(s/3600) + " h ago"; return new Date(ms).toLocaleDateString(); };
+const store = { get(k) { try { return localStorage.getItem(k) } catch { return null } }, set(k, v) { try { localStorage.setItem(k, v) } catch {} } };
+
+/* ---------------- data layer: shared db when available, this-device memory otherwise ---------------- */
+const mem = { docs: new Map(), subs: new Set(), blobs: new Map() };
+const memNotify = () => mem.subs.forEach(fn => fn());
+const Data = {
+  live: false, db: null, assets: null,
+  async put(code, doc) { if (this.db) return this.db.doc("visits/" + code).set(doc); mem.docs.set(code, structuredClone(doc)); memNotify(); },
+  async patch(code, part) { if (this.db) return this.db.doc("visits/" + code).update(part); const d = mem.docs.get(code); if (d) { Object.assign(d, structuredClone(part)); memNotify(); } },
+  watchAll(fn) {
+    if (this.db) return this.db.collection("visits").orderBy("createdAt", "desc").limit(200).onSnapshot(s => fn(s.docs.map(d => d.data())), e => toast("Live updates stopped (" + e.code + "). Reload to reconnect."));
+    const run = () => fn([...mem.docs.values()].sort((a, b) => b.createdAt - a.createdAt)); mem.subs.add(run); run(); return () => mem.subs.delete(run);
+  },
+  watchOne(code, fn) {
+    if (this.db) return this.db.doc("visits/" + code).onSnapshot(s => fn(s.exists ? s.data() : null), () => fn(null));
+    const run = () => fn(mem.docs.get(code) || null); mem.subs.add(run); run(); return () => mem.subs.delete(run);
+  },
+  async upload(blob) {
+    if (this.assets) { try { const r = await this.assets.upload(blob, { type: blob.type || "image/jpeg" }); return r.id; } catch (e) { return null; } }
+    return null;
+  },
+  url(id) { return id ? "/_blob/" + id : null; }
+};
+
+/* ---------------- image helpers ---------------- */
+const loadImg = (src) => new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = src; });
+const canvasOf = (w, h) => { const c = document.createElement("canvas"); c.width = w; c.height = h; return c; };
+const toBlob = (c, type = "image/jpeg", q = 0.86) => new Promise(r => c.toBlob(r, type, q));
+function fit(img, max) { const s = Math.min(1, max / Math.max(img.width, img.height)); const c = canvasOf(Math.round(img.width * s), Math.round(img.height * s)); c.getContext("2d").drawImage(img, 0, 0, c.width, c.height); return c; }
+function irisCrop(src, iris, size = 512) {
+  const w = src.width, h = src.height, m = Math.min(w, h);
+  const cx = iris.cx * w, cy = iris.cy * h, r = iris.r * m;
+  const c = canvasOf(size, size), g = c.getContext("2d");
+  g.fillStyle = "#1b120c"; g.fillRect(0, 0, size, size);
+  g.drawImage(src, cx - r, cy - r, 2 * r, 2 * r, 0, 0, size, size);
+  // soft limbal ring so the iris edge reads on the model
+  const grd = g.createRadialGradient(size/2, size/2, size*0.42, size/2, size/2, size*0.5);
+  grd.addColorStop(0, "rgba(20,12,8,0)"); grd.addColorStop(1, "rgba(20,12,8,0.75)");
+  g.fillStyle = grd; g.fillRect(0, 0, size, size);
+  return c;
+}
+
+/* procedural sample eye photo (used until a real photo is taken) */
+function sampleEyePhoto(seed = 1) {
+  const W = 800, H = 600, c = canvasOf(W, H), g = c.getContext("2d");
+  let s = seed * 9301; const rnd = () => (s = (s * 9301 + 49297) % 233280) / 233280;
+  const skin = g.createRadialGradient(W/2, H/2, 60, W/2, H/2, 520); skin.addColorStop(0, "#c99a80"); skin.addColorStop(1, "#5e3d2f");
+  g.fillStyle = skin; g.fillRect(0, 0, W, H);
+  g.save(); g.beginPath(); g.moveTo(130, 310); g.bezierCurveTo(260, 140, 540, 140, 670, 300); g.bezierCurveTo(540, 450, 260, 460, 130, 310); g.closePath(); g.clip();
+  const scl = g.createRadialGradient(W/2, 305, 40, W/2, 305, 300); scl.addColorStop(0, "#f7f3ee"); scl.addColorStop(1, "#cdb6ad"); g.fillStyle = scl; g.fillRect(0, 0, W, H);
+  g.strokeStyle = "rgba(190,90,90,.35)"; g.lineWidth = 1.2;
+  for (let i = 0; i < 18; i++) { const side = i % 2 ? 1 : -1; let x = W/2 + side * (150 + rnd()*90), y = 300 + (rnd()-0.5)*90; g.beginPath(); g.moveTo(x, y); for (let k = 0; k < 4; k++) { x -= side * (10 + rnd()*14); y += (rnd()-0.5)*14; g.lineTo(x, y); } g.stroke(); }
+  const cx = W/2, cy = 300, R = 112;
+  const iris = g.createRadialGradient(cx, cy, 10, cx, cy, R); const hue = seed % 2 ? ["#3a2412","#b77d3a","#7d5129","#2a1a0f"] : ["#1f2c3a","#5a86a8","#3d6584","#14202b"];
+  iris.addColorStop(0, hue[0]); iris.addColorStop(.35, hue[1]); iris.addColorStop(.7, hue[2]); iris.addColorStop(1, hue[3]);
+  g.fillStyle = iris; g.beginPath(); g.arc(cx, cy, R, 0, Math.PI*2); g.fill();
+  for (let i = 0; i < 260; i++) { const a = i / 260 * Math.PI * 2 + rnd()*0.02, r0 = 40 + rnd()*12, r1 = R - rnd()*14; g.strokeStyle = `rgba(${200+rnd()*55|0},${150+rnd()*60|0},${90+rnd()*60|0},${0.15+rnd()*0.3})`; g.lineWidth = 0.8 + rnd(); g.beginPath(); g.moveTo(cx + r0*Math.cos(a), cy + r0*Math.sin(a)); g.lineTo(cx + r1*Math.cos(a + (rnd()-.5)*.08), cy + r1*Math.sin(a + (rnd()-.5)*.08)); g.stroke(); }
+  g.strokeStyle = "rgba(10,6,4,.8)"; g.lineWidth = 6; g.beginPath(); g.arc(cx, cy, R - 3, 0, Math.PI*2); g.stroke();
+  g.fillStyle = "#070505"; g.beginPath(); g.arc(cx, cy, 42, 0, Math.PI*2); g.fill();
+  g.fillStyle = "rgba(255,255,255,.92)"; g.beginPath(); g.ellipse(cx - 26, cy - 30, 12, 8, -0.4, 0, Math.PI*2); g.fill();
+  const lid = g.createLinearGradient(0, 160, 0, 330); lid.addColorStop(0, "rgba(40,24,16,.55)"); lid.addColorStop(.4, "rgba(40,24,16,0)"); g.fillStyle = lid; g.fillRect(0, 0, W, H);
+  g.restore();
+  g.strokeStyle = "#1a100b"; g.lineWidth = 4; g.beginPath(); g.moveTo(130, 310); g.bezierCurveTo(260, 140, 540, 140, 670, 300); g.stroke();
+  g.lineWidth = 2;
+  for (let i = 0; i <= 40; i++) { const t = .05 + i/40*.9, x = (1-t)**3*130 + 3*(1-t)**2*t*260 + 3*(1-t)*t*t*540 + t**3*670, y = (1-t)**3*310 + 3*(1-t)**2*t*140 + 3*(1-t)*t*t*140 + t**3*300, L = 14 + 10*Math.sin(Math.PI*t); g.beginPath(); g.moveTo(x, y); g.quadraticCurveTo(x + (t-.5)*6, y - L*.7, x + (t-.5)*L*.9, y - L); g.stroke(); }
+  return { canvas: c, iris: { cx: 0.5, cy: 0.5, r: 0.19 } };
+}
+
+/* procedural fundus (retina) when no fundus photo exists */
+function sampleFundus(seed = 1) {
+  const S = 512, c = canvasOf(S, S), g = c.getContext("2d");
+  let s = seed * 7919; const rnd = () => (s = (s * 9301 + 49297) % 233280) / 233280;
+  g.fillStyle = "#000"; g.fillRect(0, 0, S, S);
+  const bg = g.createRadialGradient(S*.48, S*.5, 20, S/2, S/2, S*.5); bg.addColorStop(0, "#c8562a"); bg.addColorStop(.75, "#a33b1c"); bg.addColorStop(1, "#5a1c0c");
+  g.save(); g.beginPath(); g.arc(S/2, S/2, S*.48, 0, Math.PI*2); g.clip(); g.fillStyle = bg; g.fillRect(0, 0, S, S);
+  const mac = g.createRadialGradient(S*.46, S*.5, 4, S*.46, S*.5, 70); mac.addColorStop(0, "rgba(60,15,5,.75)"); mac.addColorStop(1, "rgba(60,15,5,0)"); g.fillStyle = mac; g.fillRect(0, 0, S, S);
+  const dx = S*.72, dy = S*.5;
+  const vessel = (ang, len, w) => { g.strokeStyle = "rgba(110,18,10,.9)"; g.lineCap = "round"; let x = dx, y = dy, a = ang; for (let i = 0; i < 26; i++) { const nx = x + Math.cos(a) * len/26, ny = y + Math.sin(a) * len/26; g.lineWidth = Math.max(1, w * (1 - i/30)); g.beginPath(); g.moveTo(x, y); g.lineTo(nx, ny); g.stroke(); x = nx; y = ny; a += (rnd() - .5) * .18 + (ang < Math.PI ? .035 : -.035); if (i % 7 === 6 && w > 3) { const sa = a + (rnd() > .5 ? .6 : -.6); let bx = x, by = y; for (let k = 0; k < 10; k++) { const ex = bx + Math.cos(sa) * 9, ey = by + Math.sin(sa) * 9; g.lineWidth = Math.max(1, w*.45); g.beginPath(); g.moveTo(bx, by); g.lineTo(ex, ey); g.stroke(); bx = ex; by = ey; } } } };
+  [Math.PI*1.12, Math.PI*.88, Math.PI*1.3, Math.PI*.7, Math.PI*1.55, Math.PI*.45].forEach((a, i) => vessel(a, 260 - i*18, 7 - i*.6));
+  const disc = g.createRadialGradient(dx, dy, 2, dx, dy, 34); disc.addColorStop(0, "#fff6d8"); disc.addColorStop(.45, "#f3d79a"); disc.addColorStop(1, "rgba(220,140,70,0)"); g.fillStyle = disc; g.beginPath(); g.arc(dx, dy, 34, 0, Math.PI*2); g.fill();
+  g.restore();
+  return c;
+}
+
+/* ---------------- local image quality ---------------- */
+function quality(src, iris) {
+  const c = fit(src, 256), g = c.getContext("2d"), { width: w, height: h } = c, d = g.getImageData(0, 0, w, h).data;
+  const gray = new Float32Array(w * h); let sum = 0, bright = 0;
+  for (let i = 0; i < w * h; i++) { const v = d[i*4]*.299 + d[i*4+1]*.587 + d[i*4+2]*.114; gray[i] = v; sum += v; if (v > 248) bright++; }
+  const mean = sum / (w * h); let lap = 0, n = 0;
+  for (let y = 1; y < h - 1; y++) for (let x = 1; x < w - 1; x++) { const i = y*w + x; const L = 4*gray[i] - gray[i-1] - gray[i+1] - gray[i-w] - gray[i+w]; lap += L*L; n++; }
+  const sharp = lap / n, glare = bright / (w*h);
+  const focus = sharp > 70 ? "good" : sharp > 28 ? "fair" : "poor";
+  const light = mean > 70 && mean < 205 && glare < .03 ? "good" : (mean > 45 && mean < 225 ? "fair" : "poor");
+  const centred = iris.cx > .2 && iris.cx < .8 && iris.cy > .2 && iris.cy < .8 && iris.r > .07 && iris.r < .45 ? "good" : "fair";
+  const pts = { good: 1, fair: .6, poor: .15 };
+  const score = Math.round(100 * (pts[focus] * .5 + pts[light] * .3 + pts[centred] * .2));
+  return { score, focus, light, centred, glare: glare >= .03 };
+}
+
+/* ---------------- 3D twin viewer ---------------- */
+function scleraTexture() {
+  const c = canvasOf(1024, 512), g = c.getContext("2d");
+  const grd = g.createLinearGradient(0, 0, 1024, 0); // u=0.25 is the front of the eye
+  grd.addColorStop(0, "#efe2dc"); grd.addColorStop(.25, "#f8f4ef"); grd.addColorStop(.5, "#ecd9d1"); grd.addColorStop(.75, "#d9b8ad"); grd.addColorStop(1, "#efe2dc");
+  g.fillStyle = grd; g.fillRect(0, 0, 1024, 512);
+  let s = 3; const rnd = () => (s = (s * 9301 + 49297) % 233280) / 233280;
+  g.strokeStyle = "rgba(185,70,70,.35)";
+  for (let i = 0; i < 70; i++) { let x = 256 + (rnd() - .5) * 420, y = 256 + (rnd() - .5) * 300; if (Math.abs(x - 256) < 70 && Math.abs(y - 256) < 70) continue; g.lineWidth = .6 + rnd()*1.2; g.beginPath(); g.moveTo(x, y); for (let k = 0; k < 6; k++) { x += (x > 256 ? 1 : -1) * (6 + rnd()*10); y += (rnd() - .5) * 12; g.lineTo(x, y); } g.stroke(); }
+  return c;
+}
+function makeViewer(host) {
+  const R = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  R.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
+  R.outputEncoding = THREE.sRGBEncoding;
+  host.prepend(R.domElement);
+  const scene = new THREE.Scene();
+  const cam = new THREE.PerspectiveCamera(32, 4/3, 0.01, 50);
+  const ctl = new THREE.OrbitControls(cam, R.domElement);
+  ctl.enableDamping = true; ctl.enablePan = false; ctl.minDistance = 1.7; ctl.maxDistance = 7; ctl.autoRotate = true; ctl.autoRotateSpeed = 0.8;
+  ctl.addEventListener("start", () => ctl.autoRotate = false);
+  scene.add(new THREE.HemisphereLight(0xffffff, 0x2a3a4c, 0.85));
+  const key = new THREE.DirectionalLight(0xffffff, 0.9); key.position.set(2.5, 2, 3.5); scene.add(key);
+  const rim = new THREE.DirectionalLight(0x7fd6e2, 0.35); rim.position.set(-3, 1, -2); scene.add(rim);
+
+  // eye
+  const eye = new THREE.Group(); scene.add(eye);
+  const scl = new THREE.CanvasTexture(scleraTexture()); scl.encoding = THREE.sRGBEncoding;
+  eye.add(new THREE.Mesh(new THREE.SphereGeometry(1, 96, 64), new THREE.MeshStandardMaterial({ map: scl, roughness: 0.42, metalness: 0 })));
+  const irisRatio = 0.5, cap = Math.asin(irisRatio);
+  const ig = new THREE.SphereGeometry(1.004, 96, 48, 0, Math.PI * 2, 0, cap);
+  ig.rotateX(Math.PI / 2);
+  const pos = ig.attributes.position, uv = ig.attributes.uv;
+  for (let i = 0; i < pos.count; i++) uv.setXY(i, 0.5 + pos.getX(i) / (2 * irisRatio * 1.004), 0.5 + pos.getY(i) / (2 * irisRatio * 1.004));
+  uv.needsUpdate = true;
+  const irisMat = new THREE.MeshStandardMaterial({ roughness: 0.55, metalness: 0 });
+  eye.add(new THREE.Mesh(ig, irisMat));
+  const cg = new THREE.SphereGeometry(1.03, 96, 48, 0, Math.PI * 2, 0, cap * 1.12); cg.rotateX(Math.PI / 2);
+  eye.add(new THREE.Mesh(cg, new THREE.MeshPhysicalMaterial({ color: 0xffffff, transparent: true, opacity: 0.16, roughness: 0.03, metalness: 0, clearcoat: 1, clearcoatRoughness: 0.02 })));
+  const nerve = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.2, 0.7, 32), new THREE.MeshStandardMaterial({ color: 0xd9b3a3, roughness: 0.8 }));
+  nerve.rotation.x = Math.PI / 2; nerve.position.set(0.12, 0, -1.25); eye.add(nerve);
+
+  // retina
+  const ret = new THREE.Group(); ret.visible = false; scene.add(ret);
+  const N = 160, rg = new THREE.PlaneGeometry(2.6, 2.6, N, N);
+  const retMat = new THREE.MeshStandardMaterial({ roughness: 0.7, metalness: 0, side: THREE.DoubleSide });
+  const retMesh = new THREE.Mesh(rg, retMat); retMesh.rotation.x = -Math.PI / 2; ret.add(retMesh);
+  const base = rg.attributes.position.array.slice();
+
+  let mode = "eye";
+  const frame = () => { if (mode === "eye") { cam.position.set(0.9, 0.35, 3.3); ctl.target.set(0, 0, 0); } else { cam.position.set(0, 2.1, 2.3); ctl.target.set(0, -0.15, 0); } ctl.update(); };
+  frame();
+  const resize = () => { const w = host.clientWidth, h = host.clientHeight; if (!w || !h) return; R.setSize(w, h, false); cam.aspect = w / h; cam.updateProjectionMatrix(); };
+  new ResizeObserver(resize).observe(host); resize();
+  (function loop() { requestAnimationFrame(loop); if (!host.offsetParent) return; ctl.update(); R.render(scene, cam); })();
+
+  return {
+    setIris(canvas) { const t = new THREE.CanvasTexture(canvas); t.encoding = THREE.sRGBEncoding; t.anisotropy = 4; if (irisMat.map) irisMat.map.dispose(); irisMat.map = t; irisMat.needsUpdate = true; },
+    setRetina(canvas) {
+      const t = new THREE.CanvasTexture(canvas); t.encoding = THREE.sRGBEncoding; if (retMat.map) retMat.map.dispose(); retMat.map = t; retMat.needsUpdate = true;
+      // height field from image brightness: vessels sink, optic disc rises, plus a gentle bowl and foveal pit
+      const S = N + 1, sc = canvasOf(S, S), sg = sc.getContext("2d"); sg.drawImage(canvas, 0, 0, S, S);
+      const d = sg.getImageData(0, 0, S, S).data, L = new Float32Array(S * S); let m = 0;
+      for (let i = 0; i < S*S; i++) { L[i] = (d[i*4]*.3 + d[i*4+1]*.59 + d[i*4+2]*.11) / 255; m += L[i]; } m /= S*S;
+      for (let pass = 0; pass < 2; pass++) for (let y = 1; y < S-1; y++) for (let x = 1; x < S-1; x++) { const i = y*S + x; L[i] = (L[i]*4 + L[i-1] + L[i+1] + L[i-S] + L[i+S]) / 8; }
+      const p = rg.attributes.position;
+      for (let y = 0; y < S; y++) for (let x = 0; x < S; x++) {
+        const i = y*S + x, u = x / N - .5, v = y / N - .5, r2 = u*u + v*v;
+        const inside = r2 < 0.235 ? 1 : Math.max(0, 1 - (Math.sqrt(r2) - 0.485) * 25);
+        const pit = -0.09 * Math.exp(-((u + .04)**2 + v*v) / 0.004);
+        p.setZ(i, base[i*3 + 2] + (0.42 * r2) + inside * ((L[i] - m) * 0.32 + pit));
+      }
+      p.needsUpdate = true; rg.computeVertexNormals();
+    },
+    setMode(m) { mode = m; eye.visible = m === "eye"; ret.visible = m === "retina"; ctl.autoRotate = m === "eye"; frame(); }
+  };
+}
+
+/* ---------------- app state ---------------- */
+const S = { role: "operator", photo: null, iris: { cx: .5, cy: .5, r: .19 }, isSample: true, fundus: null, ai: null,
+  intake: { diabetes: "no", visionLoss: "no", eye: "OD" }, visits: [], selected: null, viewing: null, triage: null, ptCode: null, ptUnsub: null };
+let viewers = {};
+const ensureViewer = (k, host) => viewers[k] || (viewers[k] = makeViewer($(host)));
+
+/* role switching */
+function setRole(r) {
+  S.role = r;
+  document.querySelectorAll(".roles button").forEach(b => b.setAttribute("aria-pressed", b.dataset.role === r));
+  ["operator", "doctor", "patient"].forEach(x => $("view-" + x).hidden = x !== r);
+  if (r === "operator") ensureViewer("op", "op-stage");
+  if (r === "doctor") ensureViewer("dr", "dr-stage");
+  if (r === "patient") { const v = ensureViewer("pt", "pt-stage"); if (!S.ptCode) { const s = sampleEyePhoto(2); v.setIris(irisCrop(s.canvas, s.iris)); v.setRetina(sampleFundus(2)); } }
+  store.set("eyetwin.role", r);
+  if (location.hash.slice(1) !== r) history.replaceState(null, "", "#" + r);
+}
+document.querySelectorAll(".roles button").forEach(b => b.onclick = () => setRole(b.dataset.role));
+document.querySelectorAll(".stage .seg").forEach(seg => seg.addEventListener("click", e => {
+  const b = e.target.closest("button"); if (!b) return;
+  seg.querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", x === b));
+  viewers[seg.dataset.stage]?.setMode(b.dataset.m);
+}));
+
+/* ---------------- operator ---------------- */
+const cap = $("cap-canvas"), cg = cap.getContext("2d");
+function drawCapture() {
+  const p = S.photo; if (!p) return;
+  cap.width = p.width; cap.height = p.height; cg.drawImage(p, 0, 0);
+  const m = Math.min(p.width, p.height), x = S.iris.cx * p.width, y = S.iris.cy * p.height, r = S.iris.r * m;
+  cg.lineWidth = Math.max(2, m / 220);
+  cg.strokeStyle = "#42B9C9"; cg.setLineDash([m/60, m/90]); cg.beginPath(); cg.arc(x, y, r, 0, Math.PI*2); cg.stroke(); cg.setLineDash([]);
+  cg.strokeStyle = "#ffffff"; cg.beginPath(); cg.moveTo(x - m/40, y); cg.lineTo(x + m/40, y); cg.moveTo(x, y - m/40); cg.lineTo(x, y + m/40); cg.stroke();
+  $("cap-wrap").style.aspectRatio = p.width + " / " + p.height;
+}
+let twinTimer;
+function refreshTwin() {
+  drawCapture();
+  clearTimeout(twinTimer);
+  twinTimer = setTimeout(() => { const v = ensureViewer("op", "op-stage"); v.setIris(irisCrop(S.photo, S.iris)); renderIQA(); }, 60);
+}
+function setPhoto(canvas, iris, isSample) {
+  S.photo = canvas; S.iris = { ...iris }; S.isSample = isSample; S.ai = null;
+  $("cap-r").value = S.iris.r; $("cap-tag").textContent = isSample ? "Sample eye loaded — take a photo to replace it" : "Your photo";
+  $("ai-out").hidden = true; $("ai-state").textContent = "";
+  refreshTwin();
+}
+function renderIQA() {
+  const q = quality(S.photo, S.iris); S.q = q;
+  const cell = (k, label, val) => `<div class="check ${val}"><small>${label}</small><b>${val === "good" ? "Good" : val === "fair" ? "Fair" : "Poor"}</b></div>`;
+  $("iqa").innerHTML = `<div class="check ${q.score >= 80 ? "good" : q.score >= 55 ? "fair" : "poor"}"><small>Quality score</small><b>${q.score}%</b></div>` + cell("f", "Focus", q.focus) + cell("l", "Lighting" + (q.glare ? " · glare" : ""), q.light) + cell("c", "Iris aligned", q.centred);
+}
+function pointer(e) { const r = cap.getBoundingClientRect(); return { x: (e.clientX - r.left) / r.width, y: (e.clientY - r.top) / r.height }; }
+let dragging = false;
+cap.addEventListener("pointerdown", e => { dragging = true; cap.setPointerCapture(e.pointerId); const p = pointer(e); S.iris.cx = p.x; S.iris.cy = p.y; refreshTwin(); });
+cap.addEventListener("pointermove", e => { if (!dragging) return; const p = pointer(e); S.iris.cx = Math.min(1, Math.max(0, p.x)); S.iris.cy = Math.min(1, Math.max(0, p.y)); refreshTwin(); });
+cap.addEventListener("pointerup", () => dragging = false);
+$("cap-r").addEventListener("input", e => { S.iris.r = +e.target.value; refreshTwin(); });
+$("cap-sample").onclick = () => { const s = sampleEyePhoto(1 + Math.floor(Math.random() * 4)); setPhoto(s.canvas, s.iris, true); };
+$("cap-file").addEventListener("change", async e => {
+  const f = e.target.files[0]; if (!f) return; e.target.value = "";
+  try { const url = URL.createObjectURL(f); const img = await loadImg(url); URL.revokeObjectURL(url); const c = fit(img, 1600); setPhoto(c, autoCentre(c) || { cx: .5, cy: .5, r: .2 }, false); toast("Photo loaded. Check the ring sits on the iris edge."); }
+  catch { toast("That file couldn't be opened as an image. Try a JPEG or PNG."); }
+});
+function autoCentre(src) {
+  const c = fit(src, 160), g = c.getContext("2d"), { width: w, height: h } = c, d = g.getImageData(0, 0, w, h).data;
+  const vals = []; for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { const i = (y*w + x) * 4; const v = d[i]*.3 + d[i+1]*.59 + d[i+2]*.11; const edge = Math.min(x, y, w - x, h - y) / Math.min(w, h); vals.push({ x, y, v: v + (edge < .12 ? 120 : 0) }); }
+  const sorted = vals.slice().sort((a, b) => a.v - b.v), take = sorted.slice(0, Math.max(8, Math.round(vals.length * .015)));
+  let sx = 0, sy = 0; take.forEach(p => { sx += p.x; sy += p.y; });
+  const cx = sx / take.length / w, cy = sy / take.length / h;
+  return { cx, cy, r: S.iris?.r || .2 };
+}
+$("cap-auto").onclick = () => { const a = autoCentre(S.photo); if (a) { S.iris.cx = a.cx; S.iris.cy = a.cy; refreshTwin(); toast("Centred on the darkest area (the pupil). Adjust if needed."); } };
+
+$("fundus-file").addEventListener("change", async e => {
+  const f = e.target.files[0]; if (!f) return; e.target.value = "";
+  try { const url = URL.createObjectURL(f); const img = await loadImg(url); URL.revokeObjectURL(url); S.fundus = fit(img, 900); $("fundus-state").textContent = "Fundus photo added — retina twin will be built from it"; ensureViewer("op", "op-stage").setRetina(S.fundus); }
+  catch { toast("That fundus file couldn't be opened."); }
+});
+
+document.querySelectorAll("#op-intake .seg").forEach(seg => seg.addEventListener("click", e => {
+  const b = e.target.closest("button"); if (!b) return;
+  seg.querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", x === b));
+  S.intake[seg.dataset.field] = b.dataset.v;
+  const urgent = S.intake.visionLoss === "yes"; $("yn-loss").classList.toggle("alert", urgent); $("op-urgent").hidden = !urgent;
+}));
+$("op-intake").addEventListener("submit", e => e.preventDefault());
+
+const makeCode = () => { const a = "ACDEFGHJKMNPQRTUVWXY34679"; let s = "HR-"; for (let i = 0; i < 5; i++) s += a[Math.floor(Math.random() * a.length)]; return s; };
+async function dataURL(canvas, q) { return canvas.toDataURL("image/jpeg", q); }
+
+$("op-send").onclick = async () => {
+  const name = $("op-name").value.trim();
+  if (!name) { $("op-name").focus(); toast("Add the patient's name or ID first."); return; }
+  const btn = $("op-send"); btn.disabled = true; btn.textContent = "Sending…";
+  try {
+    const code = makeCode(), q = S.q || quality(S.photo, S.iris);
+    const crop = irisCrop(S.photo, S.iris, 384), thumb = fit(S.photo, 480);
+    const doc = {
+      code, createdAt: Date.now(), patientName: name, patientKey: name.toLowerCase().replace(/\s+/g, " "),
+      age: +$("op-age").value || null, diabetes: S.intake.diabetes === "yes", visionLoss: S.intake.visionLoss === "yes", eye: S.intake.eye,
+      status: S.intake.visionLoss === "yes" ? "urgent" : "waiting", sample: S.isSample,
+      iqa: { score: q.score, focus: q.focus, light: q.light, centred: q.centred, glare: q.glare, ai: S.ai || null },
+      iris: S.iris, irisData: await dataURL(crop, .85), thumbData: await dataURL(thumb, .72)
+    };
+    if (!S.isSample) { const full = await toBlob(fit(S.photo, 1600), "image/jpeg", .88); const id = await Data.upload(full); if (id) doc.photoId = id; }
+    if (S.fundus) { const fd = fit(S.fundus, 448); doc.fundusData = await dataURL(fd, .8); const id = await Data.upload(await toBlob(fit(S.fundus, 1400), "image/jpeg", .88)); if (id) doc.fundusId = id; }
+    await Data.put(code, doc);
+    $("op-code").textContent = code; $("op-sent").hidden = false; btn.hidden = true;
+    toast(doc.status === "urgent" ? "Sent as urgent — the doctor sees it first." : "Visit sent to the specialist queue.");
+  } catch (e) {
+    toast(e?.code === "quota_exceeded" ? "The visit store is full. Delete old visits first." : "Couldn't send the visit (" + (e?.code || "error") + "). Try again.");
+  } finally { btn.disabled = false; btn.textContent = "Send visit to specialist"; }
+};
+$("op-copy").onclick = async () => { const t = $("op-code").textContent; try { await navigator.clipboard.writeText(t); toast("Code copied."); } catch { const r = document.createRange(); r.selectNodeContents($("op-code")); getSelection().removeAllRanges(); getSelection().addRange(r); toast("Code selected — copy it from here."); } };
+$("op-next").onclick = () => {
+  $("op-sent").hidden = true; $("op-send").hidden = false; $("op-name").value = ""; $("op-age").value = "";
+  document.querySelectorAll('#op-intake .seg').forEach(seg => seg.querySelectorAll("button").forEach(b => b.setAttribute("aria-pressed", b.dataset.v === (seg.dataset.field === "eye" ? "OD" : "no"))));
+  S.intake = { diabetes: "no", visionLoss: "no", eye: "OD" }; $("yn-loss").classList.remove("alert"); $("op-urgent").hidden = true;
+  S.fundus = null; $("fundus-state").textContent = "No fundus photo — retina view will be simulated"; ensureViewer("op", "op-stage").setRetina(sampleFundus(1));
+  const s = sampleEyePhoto(1); setPhoto(s.canvas, s.iris, true); window.scrollTo({ top: 0, behavior: "smooth" });
+};
+
+/* AI quality check via Claude (optional) */
+let sample = null;
+$("ai-check").onclick = async () => {
+  if (!sample) return; const btn = $("ai-check"); btn.disabled = true; $("ai-state").textContent = "Thinking…"; $("ai-out").hidden = true;
+  try {
+    const blob = await toBlob(fit(S.photo, 1200), "image/jpeg", .9);
+    const r = await sample.json('This is an external photo of one human eye, taken by a non-specialist operator for an eye-screening PROTOTYPE. Do not diagnose or name any disease. Judge only whether the photo is usable. Reply with only JSON: {"eyeVisible": boolean, "usable": boolean, "focus": "good"|"fair"|"poor", "lighting": "good"|"fair"|"poor", "glare": boolean, "advice": "one short sentence telling the operator what to do next"}', { images: blob, modelTier: "quick" });
+    S.ai = { eyeVisible: !!r.eyeVisible, usable: !!r.usable, focus: String(r.focus || ""), lighting: String(r.lighting || ""), advice: String(r.advice || "").slice(0, 240) };
+    $("ai-out").innerHTML = `<b>${S.ai.usable ? "Usable photo" : "Retake recommended"}</b> · focus ${esc(S.ai.focus)}, lighting ${esc(S.ai.lighting)}${r.glare ? ", glare" : ""}<br>${esc(S.ai.advice)}`;
+    $("ai-out").hidden = false; $("ai-state").textContent = "";
+  } catch (e) {
+    $("ai-state").textContent = e.code === "not_granted" || e.code === "sampling_disabled" ? "Claude checks are off for this view." : e.code === "rate_limited" ? "Too many checks — try again in a minute." : "The check didn't finish. Try again.";
+    if (e.code === "not_granted" || e.code === "sampling_disabled" || e.code === "images_unavailable") btn.hidden = true;
+  } finally { btn.disabled = false; }
+};
+
+/* ---------------- doctor ---------------- */
+const lvlText = { green: "Green", amber: "Amber", red: "Red" };
+function statusPill(v) {
+  if (v.status === "reviewed") return `<span class="pill ${v.triage?.level}">${lvlText[v.triage?.level] || "Reviewed"}</span>`;
+  return v.status === "urgent" ? '<span class="pill urgent">Urgent</span>' : '<span class="pill waiting">Waiting</span>';
+}
+function renderQueue() {
+  const rank = v => v.status === "urgent" ? 0 : v.status === "waiting" ? 1 : 2;
+  const list = S.visits.slice().sort((a, b) => rank(a) - rank(b) || b.createdAt - a.createdAt);
+  const open = list.filter(v => v.status !== "reviewed").length;
+  $("q-count").textContent = open ? open + " waiting" : "All reviewed";
+  $("queue").innerHTML = list.length ? list.map(v => `<button class="qitem" data-code="${esc(v.code)}" aria-current="${S.selected === v.code}"><span class="code">${esc(v.code)}${v.sample ? ' <span class="pill sample">Sample</span>' : ""}</span><span class="pill">${statusPill(v)}</span><span class="who">${esc(v.patientName)}</span><span class="when">${ago(v.createdAt)} · quality ${v.iqa?.score ?? "–"}%</span></button>`).join("")
+    : '<div class="empty">No visits yet. Send one from the Operator tab, or add a sample visit.</div>';
+}
+$("queue").addEventListener("click", e => { const b = e.target.closest(".qitem"); if (b) selectVisit(b.dataset.code); });
+async function texturesFor(v) {
+  let irisC;
+  try { const img = await loadImg(v.irisData); irisC = canvasOf(img.width, img.height); irisC.getContext("2d").drawImage(img, 0, 0); }
+  catch { const s = sampleEyePhoto(1); irisC = irisCrop(s.canvas, s.iris); }
+  let retC = null;
+  const fsrc = v.fundusId ? Data.url(v.fundusId) : v.fundusData;
+  if (fsrc) { try { retC = fit(await loadImg(fsrc), 900); } catch { try { retC = v.fundusData ? fit(await loadImg(v.fundusData), 900) : null; } catch {} } }
+  return { irisC, retC: retC || sampleFundus((v.code.charCodeAt(4) || 1) % 7 + 1), simulated: !retC };
+}
+async function showInViewer(viewer, v, labelEl, footEl) {
+  const t = await texturesFor(v);
+  viewer.setIris(t.irisC); viewer.setRetina(t.retC);
+  if (footEl) footEl.textContent = (t.simulated ? "Retina view simulated (no fundus photo) · " : "Retina twin built from fundus photo · ") + "drag to rotate";
+}
+function selectVisit(code, viewingOld) {
+  const v = S.visits.find(x => x.code === code); if (!v) return;
+  if (!viewingOld) { S.selected = code; S.viewing = code; S.triage = v.triage?.level || null; $("dr-note").value = v.triage?.note || ""; }
+  else S.viewing = code;
+  const cur = S.visits.find(x => x.code === S.selected);
+  $("dr-empty").hidden = true; $("dr-body").hidden = false;
+  $("dr-urgent").hidden = !cur.visionLoss;
+  $("dr-old").hidden = S.viewing === S.selected; $("dr-old").innerHTML = S.viewing !== S.selected ? `Viewing earlier visit ${esc(v.code)} from ${new Date(v.createdAt).toLocaleDateString()}. <button class="btn" type="button" id="dr-back" style="padding:3px 10px;margin-left:6px">Back to current</button>` : "";
+  if (S.viewing !== S.selected) $("dr-back").onclick = () => selectVisit(S.selected, true);
+  $("dr-title").textContent = cur.patientName; $("dr-pill").outerHTML = `<span class="pill" id="dr-pill">${statusPill(cur).replace(/^<span class="pill ([^"]*)">|<\/span>$/g, "")}</span>`;
+  $("dr-pill").className = "pill " + (cur.status === "reviewed" ? cur.triage?.level : cur.status);
+  const yn = b => b ? "Yes" : "No";
+  $("dr-facts").innerHTML = [["Visit", cur.code], ["Age", cur.age ?? "–"], ["Eye", cur.eye === "OS" ? "Left (OS)" : "Right (OD)"], ["Diabetes", yn(cur.diabetes)], ["Vision loss 48 h", yn(cur.visionLoss)], ["Image quality", (cur.iqa?.score ?? "–") + "%"], ["Captured", new Date(cur.createdAt).toLocaleString()]]
+    .map(([k, val]) => `<div><dt>${k}</dt><dd>${esc(val)}</dd></div>`).join("") + (cur.iqa?.ai ? `<div style="grid-column:1/-1"><dt>Claude photo check</dt><dd>${cur.iqa.ai.usable ? "Usable" : "Retake suggested"} — ${esc(cur.iqa.ai.advice)}</dd></div>` : "");
+  const hist = S.visits.filter(x => x.patientKey === cur.patientKey).sort((a, b) => b.createdAt - a.createdAt);
+  $("dr-hist-wrap").hidden = hist.length < 2;
+  $("dr-hist").innerHTML = hist.map(h => `<button type="button" data-code="${esc(h.code)}" aria-current="${h.code === S.viewing}"><img src="${h.irisData}" alt="">${h.code === cur.code ? "This visit" : new Date(h.createdAt).toLocaleDateString()}</button>`).join("");
+  document.querySelectorAll("#dr-triage button").forEach(b => b.setAttribute("aria-pressed", b.dataset.l === S.triage));
+  $("dr-send").disabled = !S.triage; $("dr-send").textContent = cur.status === "reviewed" ? "Update result" : "Send result to patient";
+  $("dr-label").textContent = S.viewing === S.selected ? "3D EYE TWIN · " + v.code : "EARLIER VISIT · " + v.code;
+  renderQueue();
+  showInViewer(ensureViewer("dr", "dr-stage"), v, null, $("dr-foot"));
+}
+$("dr-hist").addEventListener("click", e => { const b = e.target.closest("button"); if (b) selectVisit(b.dataset.code, b.dataset.code !== S.selected); });
+$("dr-triage").addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; S.triage = b.dataset.l; document.querySelectorAll("#dr-triage button").forEach(x => x.setAttribute("aria-pressed", x === b)); $("dr-send").disabled = false; });
+$("dr-send").onclick = async () => {
+  if (!S.selected || !S.triage) return; const btn = $("dr-send"); btn.disabled = true;
+  try { await Data.patch(S.selected, { status: "reviewed", triage: { level: S.triage, note: $("dr-note").value.trim().slice(0, 600), at: Date.now() } }); toast("Result sent. The patient sees it now."); }
+  catch (e) { toast("Couldn't send the result (" + (e?.code || "error") + ")."); }
+  finally { btn.disabled = false; }
+};
+$("seed-sample").onclick = async () => {
+  const seed = 1 + Math.floor(Math.random() * 4), s = sampleEyePhoto(seed), code = makeCode(), q = quality(s.canvas, s.iris);
+  const doc = { code, createdAt: Date.now(), patientName: "Sample patient " + "ABCD"[seed - 1], patientKey: "sample patient " + "abcd"[seed - 1], age: 52 + seed * 3, diabetes: true, visionLoss: false, eye: "OD", status: "waiting", sample: true,
+    iqa: { score: q.score, focus: q.focus, light: q.light, centred: q.centred, glare: q.glare, ai: null }, iris: s.iris,
+    irisData: irisCrop(s.canvas, s.iris, 384).toDataURL("image/jpeg", .85), thumbData: fit(s.canvas, 480).toDataURL("image/jpeg", .72) };
+  try { await Data.put(code, doc); S.selected = null; setTimeout(() => selectVisit(code), 120); toast("Sample visit added to the queue."); } catch (e) { toast("Couldn't add a sample (" + (e?.code || "error") + ")."); }
+};
+
+/* ---------------- patient ---------------- */
+const resultCopy = {
+  green: ["No signs that need action", "Your next eye check is in about 12 months, at the next van visit to your area."],
+  amber: ["Please come back for a re-check", "The specialist would like to look again in 3–6 months. The van will remind you."],
+  red: ["Please go to your hospital appointment today", "A same-day appointment has been booked for you, and a health worker will go with you."]
+};
+function openPatient(code) {
+  code = code.trim().toUpperCase(); if (!code) return;
+  S.ptUnsub?.(); S.ptCode = code; store.set("eyetwin.code", code); $("pt-code").value = code;
+  let shownFor = null;
+  S.ptUnsub = Data.watchOne(code, async v => {
+    if (!v) { $("pt-status").hidden = true; $("pt-msg").textContent = "No visit found for " + code + ". Check the code with the operator."; return; }
+    $("pt-msg").textContent = ""; $("pt-status").hidden = false;
+    $("pt-hello").textContent = "Hello, " + v.patientName;
+    const reviewed = v.status === "reviewed";
+    const steps = [["Photo taken", "Captured " + ago(v.createdAt), true], ["Specialist review", reviewed ? "Reviewed " + ago(v.triage.at) : (v.status === "urgent" ? "Marked urgent — a specialist is looking now" : "Waiting for a specialist"), reviewed], ["Your result", reviewed ? "Ready below" : "Appears here as soon as it's ready", reviewed]];
+    $("pt-timeline").innerHTML = steps.map(([t, s, done], i) => `<li class="${done ? "done" : (i === steps.findIndex(x => !x[2]) ? "now" : "")}"><span class="dot">${done ? "✓" : i + 1}</span><div><b>${t}</b><span>${esc(s)}</span></div></li>`).join("");
+    if (reviewed) { const [h, p] = resultCopy[v.triage.level]; $("pt-result").innerHTML = `<div class="result ${v.triage.level}"><h3>${h}</h3><p style="margin:0">${p}</p>${v.triage.note ? `<p style="margin:0"><b>From the specialist:</b> ${esc(v.triage.note)}</p>` : ""}</div>`; }
+    else $("pt-result").innerHTML = "";
+    if (shownFor !== v.code) { shownFor = v.code; $("pt-stage-note").textContent = "This is a 3D model rebuilt from the photo of your eye."; await showInViewer(ensureViewer("pt", "pt-stage"), v); }
+  });
+}
+$("pt-form").addEventListener("submit", e => { e.preventDefault(); openPatient($("pt-code").value); });
+
+/* ---------------- boot ---------------- */
+async function boot() {
+  const s0 = sampleEyePhoto(1);
+  const start = (location.hash.slice(1) || store.get("eyetwin.role") || "operator");
+  setRole(["operator", "doctor", "patient"].includes(start) ? start : "operator");
+  setPhoto(s0.canvas, s0.iris, true);
+  ensureViewer("op", "op-stage").setRetina(sampleFundus(1));
+  const live = (db) => { Data.watchAll(list => { S.visits = list; renderQueue(); if (S.selected) { const still = list.find(v => v.code === S.selected); if (still && S.role === "doctor") { const cur = S.viewing; selectVisit(S.selected, cur !== S.selected); if (cur !== S.selected) S.viewing = cur; } } }); };
+  const c = window.claude;
+  let db = null, assets = null;
+  if (c?.use) { [db, assets, sample] = await Promise.all([c.use("db"), c.use("assets"), c.use("sample")]); }
+  Data.db = db; Data.assets = assets; Data.live = !!db;
+  $("sync").classList.toggle("live", !!db);
+  $("sync-text").textContent = db ? "Live sync · all devices" : "This device only";
+  if (sample) { const lim = await sample.limits().catch(() => null); $("ai-check").hidden = !lim?.images; }
+  live(db);
+  const saved = store.get("eyetwin.code"); if (saved) openPatient(saved);
+}
+boot();
+})();
+</script>
+
+</html>

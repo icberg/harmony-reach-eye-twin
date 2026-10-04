@@ -6,7 +6,7 @@ Built as part of the Topcon Healthcare case in the Product Development course at
 
 > **Concept prototype, not a medical device.** The 3D eye is a visual model built from a photo. It does not measure or diagnose anything. Harmony Reach is a student concept and not an official Topcon product.
 
-**Live demo:** [icberg.github.io/harmony-reach-eye-twin](https://icberg.github.io/harmony-reach-eye-twin/#operator)
+**Live demo:** [icberg.github.io/harmony-reach-eye-twin/?v=2#operator](https://icberg.github.io/harmony-reach-eye-twin/?v=2#operator)
 
 Jump straight to a role: [Operator](https://icberg.github.io/harmony-reach-eye-twin/#operator) · [Doctor](https://icberg.github.io/harmony-reach-eye-twin/#doctor) · [Patient](https://icberg.github.io/harmony-reach-eye-twin/#patient)
 

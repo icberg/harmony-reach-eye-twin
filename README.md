@@ -10,8 +10,15 @@ Built as part of the Topcon Healthcare case in the Product Development course at
 
 Jump straight to a role: [Operator](https://icberg.github.io/harmony-reach-eye-twin/#operator) · [Doctor](https://icberg.github.io/harmony-reach-eye-twin/#doctor) · [Patient](https://icberg.github.io/harmony-reach-eye-twin/#patient)
 
-<!-- Screenshot: add docs/screenshot.png and uncomment the line below -->
-<!-- ![Eye Twin screenshot](docs/screenshot.png) -->
+![Patient view with the 3D eye twin](docs/screenshot.png)
+
+### Try it in two minutes
+
+1. **Operator:** fill in the intake form, tap **Use sample eye** (or take/upload a photo) and press **Send visit to specialist**. Note the visit code, e.g. `HR-4K7QD`.
+2. **Doctor:** open the visit from the queue, rotate the 3D eye, switch to **Retina**, then set Green / Amber / Red and **Send result to patient**.
+3. **Patient:** enter the visit code and press **Open** to see the timeline, the result and your own 3D eye.
+
+Stay in the same browser tab the whole time. On GitHub Pages, visits live only in that open page, so a reload clears them (see [Two ways it runs](#two-ways-it-runs)).
 
 ## The flow
 
@@ -28,7 +35,8 @@ Jump straight to a role: [Operator](https://icberg.github.io/harmony-reach-eye-t
 - **Image-quality check in the browser:** sharpness (Laplacian variance), brightness, glare and how well the eye is centred, all calculated from canvas pixels, so the photo never has to leave the device for this step.
 - **Pupil finding:** tap or drag to place the iris ring, a slider for its size, or auto-centre on the darkest region.
 - **Sample data:** a "Sample eye" generator and an "Add a sample visit" button, so you can demo without real photos.
-- Light and dark theme, responsive down to phone width, and deep links to each role (`#operator`, `#doctor`, `#patient`).
+- **Role tabs:** Operator, Doctor and Patient switch instantly within one page, and the URL follows along (`#operator`, `#doctor`, `#patient`), so you can share a link straight to one role.
+- Light and dark theme, responsive down to phone width.
 
 ## Two ways it runs
 
@@ -36,7 +44,7 @@ The page has a small data layer that picks a backend when it starts:
 
 | Mode | Where | What works |
 |---|---|---|
-| **Single device** | Any browser (GitHub Pages, opening the file locally) | Everything, inside one open page. Switch roles with the tabs at the top. Data is kept in memory and cleared on reload. |
+| **Single device** | Any browser (GitHub Pages, opening the file locally) | Everything, inside one open page. Switch roles with the tabs at the top. Data is kept in memory and cleared on reload, so a visit code from another device or an earlier session shows "No visit found". |
 | **Live sync** | Published as a Claude artifact on claude.ai | A shared real-time database (the operator's phone and the doctor's laptop update live), stored photos, and an optional AI photo-quality check (Claude, asked only about photo quality, never for a diagnosis). |
 
 ## Run it
@@ -78,6 +86,11 @@ triage:{ level: green | amber | red, note, at }
 - No live camera stream. The page uses the browser's photo picker, which opens the camera on phones.
 - The twin is a visual model, not a measurement. A real version would build it from OCT scans (for example from a Topcon Maestro2).
 - There are no accounts or access control. **Don't use real patient data.**
+
+## Changelog
+
+- **2026-10-04:** Fixed the role tabs. All three views were showing stacked on one page because a layout style overrode the `hidden` attribute. Switching tabs now shows one role at a time, scrolls to the top, and follows `#role` links. Added a screenshot and a quick-start walkthrough.
+- **2026-10-03:** First release on GitHub Pages.
 
 ## Context
 

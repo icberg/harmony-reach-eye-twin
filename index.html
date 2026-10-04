@@ -54,6 +54,7 @@ button, input, select, textarea { font: inherit; color: inherit }
 .sync.live i { background: var(--ok); box-shadow: 0 0 0 3px var(--ok-soft) }
 
 /* layout */
+[hidden] { display: none !important }
 .view { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); gap: 20px; padding-block: 20px }
 .view.doctor { grid-template-columns: minmax(0, 300px) minmax(0, 1fr) }
 @media (max-width: 860px) { .view, .view.doctor { grid-template-columns: minmax(0, 1fr) } }
@@ -497,13 +498,15 @@ function setRole(r) {
   S.role = r;
   document.querySelectorAll(".roles button").forEach(b => b.setAttribute("aria-pressed", b.dataset.role === r));
   ["operator", "doctor", "patient"].forEach(x => $("view-" + x).hidden = x !== r);
+  store.set("eyetwin.role", r);
+  if (location.hash.slice(1) !== r) history.replaceState(null, "", "#" + r);
+  if (typeof THREE === "undefined") return;
   if (r === "operator") ensureViewer("op", "op-stage");
   if (r === "doctor") ensureViewer("dr", "dr-stage");
   if (r === "patient") { const v = ensureViewer("pt", "pt-stage"); if (!S.ptCode) { const s = sampleEyePhoto(2); v.setIris(irisCrop(s.canvas, s.iris)); v.setRetina(sampleFundus(2)); } }
-  store.set("eyetwin.role", r);
-  if (location.hash.slice(1) !== r) history.replaceState(null, "", "#" + r);
 }
-document.querySelectorAll(".roles button").forEach(b => b.onclick = () => setRole(b.dataset.role));
+document.querySelectorAll(".roles button").forEach(b => b.onclick = () => { setRole(b.dataset.role); window.scrollTo({ top: 0 }); });
+window.addEventListener("hashchange", () => { const h = location.hash.slice(1); if (["operator", "doctor", "patient"].includes(h) && h !== S.role) setRole(h); });
 document.querySelectorAll(".stage .seg").forEach(seg => seg.addEventListener("click", e => {
   const b = e.target.closest("button"); if (!b) return;
   seg.querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", x === b));

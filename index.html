@@ -33,6 +33,7 @@
   --stage: #060C13; --stage-ink: #C9D5E1; color-scheme: dark }
 
 * { box-sizing: border-box }
+[hidden] { display: none !important }
 html, body { background: var(--bg) }
 body { color: var(--ink); font-family: var(--body); font-size: 15px; line-height: 1.5; padding-inline: 16px; padding-block: 0 32px }
 .wrap { max-width: 1240px; margin: 0 auto }
@@ -54,7 +55,6 @@ button, input, select, textarea { font: inherit; color: inherit }
 .sync.live i { background: var(--ok); box-shadow: 0 0 0 3px var(--ok-soft) }
 
 /* layout */
-[hidden] { display: none !important }
 .view { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); gap: 20px; padding-block: 20px }
 .view.doctor { grid-template-columns: minmax(0, 300px) minmax(0, 1fr) }
 @media (max-width: 860px) { .view, .view.doctor { grid-template-columns: minmax(0, 1fr) } }
@@ -153,6 +153,42 @@ input[type=range] { width: 100%; accent-color: var(--accent) }
 .result.green h3 { color: var(--ok) } .result.amber h3 { color: var(--warn) } .result.red h3 { color: var(--danger) }
 .foot { color: var(--muted); font-size: 12px; text-align: center; padding-top: 8px }
 .toast { position: fixed; left: 50%; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--ink); color: var(--bg); padding: 10px 16px; border-radius: 10px; font-weight: 600; font-size: 14px; z-index: 20; max-width: calc(100% - 32px) }
+/* twin: OCT, measurements, care plan, recall */
+.banner.info { background: var(--accent-soft); color: var(--accent) }
+.octgrid { display: grid; grid-template-columns: auto repeat(4, minmax(0, 1fr)); gap: 6px 8px; align-items: center }
+.octgrid b { font-size: 12px; color: var(--muted); font-weight: 700 }
+.octgrid .h { text-align: center }
+.octgrid input { text-align: center; font-family: var(--mono); padding: 7px 2px; font-variant-numeric: tabular-nums }
+.recall { display: flex; flex-direction: column; gap: 8px; max-height: 280px; overflow: auto }
+.ritem { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 8px 10px; align-items: center; padding: 9px 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--sunken) }
+.ritem .who { min-width: 0 }
+@media (max-width: 520px) { .ritem { grid-template-columns: minmax(0, 1fr) auto } .ritem .btn { grid-column: 1 / -1 } }
+.twin-grid { display: grid; grid-template-columns: minmax(0, 230px) minmax(0, 1fr); gap: 18px; align-items: start }
+@media (max-width: 640px) { .twin-grid { grid-template-columns: minmax(0, 1fr) } }
+.etdrs { width: 100%; max-width: 230px; height: auto; display: block; margin: 0 auto }
+.etdrs .et-v { font: 700 11px var(--mono); text-anchor: middle }
+.etdrs .et-d { font: 600 9px var(--mono); text-anchor: middle }
+.etdrs .et-ax { font: 700 10px var(--body); fill: var(--muted); text-anchor: middle; dominant-baseline: middle }
+.scale { display: flex; flex-direction: column; gap: 3px; font-size: 11px; color: var(--muted); max-width: 230px; margin: 8px auto 0 }
+.scale i { height: 8px; border-radius: 4px; display: block }
+.scale span { display: flex; justify-content: space-between; font-variant-numeric: tabular-nums }
+.scale em { font-style: normal }
+.trend { width: 100%; max-width: 440px; height: auto; display: block; overflow: visible }
+.trend text { font: 500 10px var(--body); fill: var(--muted) }
+.trend .gl { stroke: var(--line); stroke-width: 1 }
+.cap { font-size: 12px; color: var(--muted); margin: 4px 0 0 }
+.proposal { border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; background: var(--sunken); display: flex; flex-direction: column; gap: 10px }
+.prop-head { display: flex; flex-wrap: wrap; gap: 2px 14px; align-items: baseline }
+.prop-head b { font-size: 16px }
+.prop-head span { color: var(--muted); font-size: 13px }
+.basis { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; font-size: 13px }
+.basis li { display: flex; flex-direction: column; gap: 3px; align-items: flex-start }
+.src { font-size: 10px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; padding: 2px 7px; border-radius: 6px; background: var(--accent-soft); color: var(--accent); white-space: nowrap }
+.src.twin { background: var(--warn-soft); color: var(--warn) }
+.src.info { background: var(--surface); color: var(--muted); border: 1px solid var(--line) }
+details.override summary { cursor: pointer; font-weight: 600; font-size: 14px; color: var(--accent) }
+details.override[open] { display: flex; flex-direction: column; gap: 10px }
+label.yn input[type=checkbox] { width: 18px; height: 18px; accent-color: var(--accent); flex: none }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important } }
 </style>
 
@@ -173,12 +209,20 @@ input[type=range] { width: 100%; accent-color: var(--accent) }
   <!-- OPERATOR -->
   <section class="view" id="view-operator">
     <div class="col">
+      <section class="panel">
+        <div class="row" style="justify-content:space-between"><h2>Recall list</h2><span class="hint" id="recall-count"></span></div>
+        <p class="hint">Patients the specialist scheduled for a re-screen, soonest first. Starting one fills in the intake and updates the same eye twin.</p>
+        <div class="recall" id="recall"></div>
+      </section>
+
       <form class="panel" id="op-intake" autocomplete="off">
         <div class="step-head"><span class="step-no">1</span><h2>Intake</h2></div>
         <div class="grid2">
           <label class="f">Patient name or ID<input type="text" id="op-name" placeholder="e.g. Demo patient A" maxlength="60"></label>
           <label class="f">Age<input type="number" id="op-age" min="1" max="120" placeholder="58"></label>
         </div>
+        <div class="banner info" id="op-returning" hidden></div>
+        <div class="yn"><span>Sex <small class="hint">(OCT thresholds differ)</small></span><div class="seg" data-field="sex"><button type="button" data-v="F" aria-pressed="true">Female</button><button type="button" data-v="M" aria-pressed="false">Male</button></div></div>
         <div class="yn"><span>Diagnosed with diabetes?</span><div class="seg" data-field="diabetes"><button type="button" data-v="yes" aria-pressed="false">Yes</button><button type="button" data-v="no" aria-pressed="true">No</button></div></div>
         <div class="yn" id="yn-loss"><span>Sudden vision loss in the last 48 h?</span><div class="seg" data-field="visionLoss"><button type="button" data-v="yes" aria-pressed="false">Yes</button><button type="button" data-v="no" aria-pressed="true">No</button></div></div>
         <div class="yn"><span>Eye being captured</span><div class="seg" data-field="eye"><button type="button" data-v="OD" aria-pressed="true">Right (OD)</button><button type="button" data-v="OS" aria-pressed="false">Left (OS)</button></div></div>
@@ -213,7 +257,24 @@ input[type=range] { width: 100%; accent-color: var(--accent) }
       </section>
 
       <section class="panel">
-        <div class="step-head"><span class="step-no">5</span><h2>Send to Harmony</h2></div>
+        <div class="step-head"><span class="step-no">5</span><h2>OCT macula scan <span class="hint" style="font-weight:500">(optional)</span></h2></div>
+        <p class="hint">Type the nine thickness values (µm) from the OCT report's ETDRS grid, or simulate a scan for the demo. The twin's macula is built from these measurements.</p>
+        <div class="grid2">
+          <label class="f">Thickness scale (device)<select id="oct-device"><option value="cirrus">Zeiss Cirrus</option><option value="spectralis">Heidelberg Spectralis</option></select></label>
+          <label class="f">Demo scenario<select id="oct-scenario"><option value="normal">Stable / healthy</option><option value="early">Slow thickening</option><option value="dme">Centre swelling</option></select></label>
+        </div>
+        <div class="octgrid" id="oct-grid">
+          <span></span><b class="h">Superior</b><b class="h">Nasal</b><b class="h">Inferior</b><b class="h">Temporal</b>
+          <b>Centre</b><input type="number" inputmode="numeric" data-k="cst" aria-label="Centre subfield µm" placeholder="µm"><span></span><span></span><span></span>
+          <b>Inner ring</b><input type="number" inputmode="numeric" data-k="inner.S" aria-label="Inner superior µm"><input type="number" inputmode="numeric" data-k="inner.N" aria-label="Inner nasal µm"><input type="number" inputmode="numeric" data-k="inner.I" aria-label="Inner inferior µm"><input type="number" inputmode="numeric" data-k="inner.T" aria-label="Inner temporal µm">
+          <b>Outer ring</b><input type="number" inputmode="numeric" data-k="outer.S" aria-label="Outer superior µm"><input type="number" inputmode="numeric" data-k="outer.N" aria-label="Outer nasal µm"><input type="number" inputmode="numeric" data-k="outer.I" aria-label="Outer inferior µm"><input type="number" inputmode="numeric" data-k="outer.T" aria-label="Outer temporal µm">
+        </div>
+        <div class="row"><button class="btn" type="button" id="oct-sim">Simulate scan</button><button class="btn" type="button" id="oct-clear">No OCT this visit</button></div>
+        <p class="hint" id="oct-state">No OCT this visit. The doctor will grade from the photo only.</p>
+      </section>
+
+      <section class="panel">
+        <div class="step-head"><span class="step-no">6</span><h2>Send to Harmony</h2></div>
         <div class="banner urgent" id="op-urgent" hidden>Sudden vision loss reported: this visit goes to the top of the doctor's queue as urgent.</div>
         <button class="btn primary" type="button" id="op-send">Send visit to specialist</button>
         <div id="op-sent" hidden>
@@ -227,7 +288,7 @@ input[type=range] { width: 100%; accent-color: var(--accent) }
     <div class="col">
       <div class="stage" id="op-stage">
         <div class="stage-ui"><span class="stage-label">LIVE TWIN PREVIEW</span>
-          <div class="seg" data-stage="op"><button data-m="eye" aria-pressed="true">Eye</button><button data-m="retina" aria-pressed="false">Retina</button></div></div>
+          <div class="seg" data-stage="op"><button data-m="eye" aria-pressed="true">Eye</button><button data-m="retina" aria-pressed="false">Retina</button><button data-m="macula" aria-pressed="false">Macula</button></div></div>
         <div class="stage-foot">Drag to rotate · scroll or pinch to zoom</div>
       </div>
       <p class="hint">The twin updates as you align the iris. The doctor sees exactly this model, rebuilt from the photo on their side.</p>
@@ -240,7 +301,7 @@ input[type=range] { width: 100%; accent-color: var(--accent) }
       <section class="panel">
         <div class="row" style="justify-content:space-between"><h2>Review queue</h2><span class="hint" id="q-count"></span></div>
         <div class="queue" id="queue"></div>
-        <button class="btn" type="button" id="seed-sample">Add a sample visit</button>
+        <button class="btn" type="button" id="seed-sample">Add a sample patient (3 scans)</button>
       </section>
     </div>
     <div class="col" id="dr-detail">
@@ -250,24 +311,37 @@ input[type=range] { width: 100%; accent-color: var(--accent) }
         <div class="banner" id="dr-old" hidden></div>
         <div class="stage" id="dr-stage">
           <div class="stage-ui"><span class="stage-label" id="dr-label">3D EYE TWIN</span>
-            <div class="seg" data-stage="dr"><button data-m="eye" aria-pressed="true">Eye</button><button data-m="retina" aria-pressed="false">Retina</button></div></div>
+            <div class="seg" data-stage="dr"><button data-m="eye" aria-pressed="true">Eye</button><button data-m="retina" aria-pressed="false">Retina</button><button data-m="macula" aria-pressed="false">Macula</button></div></div>
           <div class="stage-foot" id="dr-foot">Drag to rotate · scroll or pinch to zoom</div>
         </div>
         <section class="panel">
           <div class="row" style="justify-content:space-between"><h2 id="dr-title">Visit</h2><span class="pill" id="dr-pill"></span></div>
           <dl class="facts" id="dr-facts"></dl>
-          <div id="dr-hist-wrap"><p class="hint" style="margin-bottom:6px">Earlier visits for this patient</p><div class="history" id="dr-hist"></div></div>
+          <div id="dr-hist-wrap"><p class="hint" style="margin-bottom:6px">Visits in this eye's twin (tap to compare)</p><div class="history" id="dr-hist"></div></div>
         </section>
         <section class="panel">
-          <h2>Specialist decision</h2>
-          <p class="hint">The model shows what was captured; the clinical call is yours.</p>
-          <div class="triage" id="dr-triage">
-            <button type="button" data-l="green" aria-pressed="false">Green<small>Routine · 12-month recall</small></button>
-            <button type="button" data-l="amber" aria-pressed="false">Amber<small>Re-check in 3–6 months</small></button>
-            <button type="button" data-l="red" aria-pressed="false">Red<small>Same-day referral + escort</small></button>
+          <div class="row" style="justify-content:space-between"><h2>Twin measurements</h2><div class="seg" id="dr-macmode"><button type="button" data-v="thickness" aria-pressed="true">Thickness</button><button type="button" data-v="change" aria-pressed="false">Change</button></div></div>
+          <div class="twin-grid"><div id="dr-etdrs"></div><div id="dr-trend"></div></div>
+          <p class="hint" id="dr-twin-note"></p>
+        </section>
+        <section class="panel">
+          <h2>Care plan</h2>
+          <p class="hint">You grade the photo. The twin combines your grade with the OCT measurements and their trend, then proposes a plan from published guidelines. Nothing reaches the patient until you approve.</p>
+          <div class="grid2">
+            <label class="f">Retinopathy grade (ICDR)<select id="dr-grade"><option value="">Choose a grade…</option><option value="none">No apparent retinopathy</option><option value="mild">Mild NPDR</option><option value="moderate">Moderate NPDR</option><option value="severe">Severe NPDR</option><option value="pdr">Proliferative DR</option></select></label>
+            <label class="f">Care setting (ICO table)<select id="dr-setting"><option value="low">Low / intermediate resource</option><option value="high">High resource</option></select></label>
           </div>
+          <label class="yn"><span>Macular oedema outside the centre, seen on the photo</span><input type="checkbox" id="dr-ncidme"></label>
+          <div class="proposal" id="dr-proposal"></div>
+          <details class="override" id="dr-override"><summary>Change the proposed plan</summary>
+            <div class="grid2">
+              <label class="f">Re-screen in<select id="ov-days"><option value="0">Today</option><option value="14">2 weeks</option><option value="30">1 month</option><option value="60">2 months</option><option value="91">3 months</option><option value="159">5 months</option><option value="183">6 months</option><option value="365">12 months</option><option value="730">2 years</option></select></label>
+              <label class="f">Referral<select id="ov-refer"><option value="no">No referral</option><option value="yes">Refer to ophthalmologist</option></select></label>
+            </div>
+            <label class="f">Reason for the change (required)<input type="text" id="ov-reason" maxlength="200" placeholder="e.g. Patient lives far from the clinic; seen sooner by the van instead"></label>
+          </details>
           <label class="f">Note for the patient<textarea id="dr-note" placeholder="Plain language, e.g. 'Small changes seen. We'll check again at the next van visit.'"></textarea></label>
-          <button class="btn primary" type="button" id="dr-send" disabled>Send result to patient</button>
+          <button class="btn primary" type="button" id="dr-send" disabled>Approve plan and send to patient</button>
         </section>
       </div>
     </div>
@@ -291,14 +365,14 @@ input[type=range] { width: 100%; accent-color: var(--accent) }
     <div class="col">
       <div class="stage" id="pt-stage">
         <div class="stage-ui"><span class="stage-label">YOUR EYE, IN 3D</span>
-          <div class="seg" data-stage="pt"><button data-m="eye" aria-pressed="true">Eye</button><button data-m="retina" aria-pressed="false">Retina</button></div></div>
+          <div class="seg" data-stage="pt"><button data-m="eye" aria-pressed="true">Eye</button><button data-m="retina" aria-pressed="false">Retina</button><button data-m="macula" aria-pressed="false">Macula</button></div></div>
         <div class="stage-foot">Drag to rotate · scroll or pinch to zoom</div>
       </div>
       <p class="hint" id="pt-stage-note">Showing a sample eye until you open your visit.</p>
     </div>
   </section>
 
-  <p class="foot">Prototype for a product-development course. The 3D twin is a visual model rebuilt from a photo; it is not a medical device and gives no diagnosis.</p>
+  <p class="foot">Prototype for a product-development course; not a medical device. The macula is built from OCT thickness values (simulated in the demo). Plan proposals follow the ICO Guidelines for Diabetic Eye Care (2017) and the DRCR Retina Network's thickness thresholds; the trend rules are the prototype's own and not clinically validated.</p>
 </div>
 <div class="toast" id="toast" hidden></div>
 
@@ -312,19 +386,22 @@ const ago = (ms) => { const s = Math.round((Date.now() - ms) / 1000); if (s < 60
 const store = { get(k) { try { return localStorage.getItem(k) } catch { return null } }, set(k, v) { try { localStorage.setItem(k, v) } catch {} } };
 
 /* ---------------- data layer: shared db when available, this-device memory otherwise ---------------- */
-const mem = { docs: new Map(), subs: new Set(), blobs: new Map() };
+const mem = { docs: new Map(), subs: new Set() };
 const memNotify = () => mem.subs.forEach(fn => fn());
+const deepMerge = (t, s) => { for (const k of Object.keys(s)) { const v = s[k]; if (v && typeof v === "object" && !Array.isArray(v) && t[k] && typeof t[k] === "object" && !Array.isArray(t[k])) deepMerge(t[k], v); else t[k] = structuredClone(v); } return t; };
 const Data = {
   live: false, db: null, assets: null,
-  async put(code, doc) { if (this.db) return this.db.doc("visits/" + code).set(doc); mem.docs.set(code, structuredClone(doc)); memNotify(); },
-  async patch(code, part) { if (this.db) return this.db.doc("visits/" + code).update(part); const d = mem.docs.get(code); if (d) { Object.assign(d, structuredClone(part)); memNotify(); } },
-  watchAll(fn) {
-    if (this.db) return this.db.collection("visits").orderBy("createdAt", "desc").limit(200).onSnapshot(s => fn(s.docs.map(d => d.data())), e => toast("Live updates stopped (" + e.code + "). Reload to reconnect."));
-    const run = () => fn([...mem.docs.values()].sort((a, b) => b.createdAt - a.createdAt)); mem.subs.add(run); run(); return () => mem.subs.delete(run);
+  async set(col, id, doc) { if (this.db) return this.db.doc(col + "/" + id).set(doc); mem.docs.set(col + "/" + id, structuredClone(doc)); memNotify(); },
+  async patch(col, id, part) { if (this.db) return this.db.doc(col + "/" + id).update(part); const d = mem.docs.get(col + "/" + id); if (d) { deepMerge(d, part); memNotify(); } },
+  async get(col, id) { if (this.db) { const s = await this.db.doc(col + "/" + id).get(); return s.exists ? s.data() : null; } const d = mem.docs.get(col + "/" + id); return d ? structuredClone(d) : null; },
+  watchCol(col, order, fn) {
+    if (this.db) return this.db.collection(col).orderBy(order, "desc").limit(200).onSnapshot(s => fn(s.docs.map(d => d.data())), e => toast("Live updates stopped (" + e.code + "). Reload to reconnect."));
+    const run = () => fn([...mem.docs.entries()].filter(([k]) => k.startsWith(col + "/")).map(([, v]) => v).sort((a, b) => (b[order] || 0) - (a[order] || 0)));
+    mem.subs.add(run); run(); return () => mem.subs.delete(run);
   },
-  watchOne(code, fn) {
-    if (this.db) return this.db.doc("visits/" + code).onSnapshot(s => fn(s.exists ? s.data() : null), () => fn(null));
-    const run = () => fn(mem.docs.get(code) || null); mem.subs.add(run); run(); return () => mem.subs.delete(run);
+  watchDoc(col, id, fn) {
+    if (this.db) return this.db.doc(col + "/" + id).onSnapshot(s => fn(s.exists ? s.data() : null), () => fn(null));
+    const run = () => fn(mem.docs.get(col + "/" + id) || null); mem.subs.add(run); run(); return () => mem.subs.delete(run);
   },
   async upload(blob) {
     if (this.assets) { try { const r = await this.assets.upload(blob, { type: blob.type || "image/jpeg" }); return r.id; } catch (e) { return null; } }
@@ -409,6 +486,138 @@ function quality(src, iris) {
   return { score, focus, light, centred, glare: glare >= .03 };
 }
 
+/* ---------------- clinical reference values ---------------- */
+const DAY = 864e5;
+// DRCR Retina Network definition of centre-involved DME: central subfield thickness (µm) by OCT device scale and sex
+const DME_T = { cirrus: { F: 290, M: 305 }, spectralis: { F: 305, M: 320 } };
+const DEV_NAME = { cirrus: "Zeiss Cirrus", spectralis: "Heidelberg Spectralis" };
+// approximate healthy reference values, used only by the demo simulator
+const NORMAL = { cirrus: { cst: 252, inner: 320, outer: 276 }, spectralis: { cst: 272, inner: 340, outer: 296 } };
+const GRADES = { none: "No apparent retinopathy", mild: "Mild NPDR", moderate: "Moderate NPDR", severe: "Severe NPDR", pdr: "Proliferative DR" };
+// ICO Guidelines for Diabetic Eye Care (2017): Table 2a (high resource) and 2b (low/intermediate resource): [days, text, referral]
+const ICO = {
+  high: { none: [365, "1–2 years", false], mild: [183, "6–12 months", false], moderate: [91, "3–6 months", true], severe: [60, "under 3 months", true], pdr: [21, "under 1 month", true], ncidme: [91, "3 months", true], cidme: [30, "1 month", true] },
+  low:  { none: [365, "1–2 years", false], mild: [365, "1–2 years", false], moderate: [183, "6–12 months", true], severe: [60, "under 3 months", true], pdr: [21, "under 1 month", true], ncidme: [91, "3 months", false], cidme: [30, "1 month", true] }
+};
+const Q4 = ["S", "N", "I", "T"];
+const fmtDays = d => d <= 0 ? "today" : d < 45 ? Math.max(1, Math.round(d / 7)) + (Math.round(d / 7) === 1 ? " week" : " weeks") : d < 350 ? Math.round(d / 30.4) + " months" : Math.round(d / 365) <= 1 ? "12 months" : Math.round(d / 365) + " years";
+const fmtDate = ms => new Date(ms).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" });
+const twinId = (key, eye) => ((String(key || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 80)) || "anon") + "-" + (eye === "OS" ? "os" : "od");
+const keyOf = name => String(name || "").trim().toLowerCase().replace(/\s+/g, " ");
+
+/* colour scales: sequential for thickness, diverging (blue / grey / orange) for change */
+const THICK_STOPS = [[150, "#2a1d5c"], [220, "#2b5797"], [270, "#1f8f8c"], [320, "#3fae5d"], [380, "#b9cf3a"], [450, "#f6e35a"]];
+const CHANGE_STOPS = [[-40, "#2f6bd0"], [0, "#8c96a2"], [40, "#e2702a"]];
+const hex3 = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16) / 255);
+function ramp(stops, v) {
+  if (v <= stops[0][0]) return hex3(stops[0][1]);
+  for (let i = 1; i < stops.length; i++) if (v <= stops[i][0]) { const t = (v - stops[i - 1][0]) / (stops[i][0] - stops[i - 1][0]), a = hex3(stops[i - 1][1]), b = hex3(stops[i][1]); return a.map((x, j) => x + (b[j] - x) * t); }
+  return hex3(stops[stops.length - 1][1]);
+}
+const cssRGB = a => `rgb(${a.map(x => Math.round(x * 255)).join(",")})`;
+const inkOn = a => (.2126 * a[0] + .7152 * a[1] + .0722 * a[2]) > .42 ? "#0f1d29" : "#ffffff";
+
+/* continuous thickness field (µm) over the 6 mm macula, interpolated from the 9 ETDRS sector values.
+   x is mm to the viewer's right, y is mm towards superior. Nasal is on the right for OD, left for OS. */
+function octField(oct, eye) {
+  const nas = eye === "OS" ? Math.PI : 0, ang = { S: Math.PI / 2, I: -Math.PI / 2, N: nas, T: nas + Math.PI };
+  const ring = (vals, th) => { let s = 0, w = 0; for (const q of Q4) { const c = Math.cos(th - ang[q]); if (c > 0) { const k = c ** 4; s += k * vals[q]; w += k; } } return s / w; };
+  const ease = t => t * t * (3 - 2 * t);
+  return (x, y) => {
+    const r = Math.hypot(x, y), th = Math.atan2(y, x), ci = ring(oct.inner, th), co = ring(oct.outer, th);
+    const K = [[0, oct.cst * 0.88], [0.5, oct.cst * 1.1], [1.0, ci], [2.25, co], [3.0, co * 0.95]];
+    for (let j = 0; j < 4; j++) if (r <= K[j + 1][0]) { const t = (r - K[j][0]) / (K[j + 1][0] - K[j][0]); return K[j][1] + (K[j + 1][1] - K[j][1]) * ease(t); }
+    return K[4][1];
+  };
+}
+
+/* the twin's history for one eye: [{code, at, oct, dr}] oldest first */
+function seriesFor(hist, upto, device) { const out = []; for (const h of hist) { if (h.oct && h.oct.device === device) out.push(h); if (h.code === upto) break; } return out; }
+function trend(series, th) {
+  if (series.length < 2) return null;
+  const last = series[series.length - 1], prev = series[series.length - 2], pts = series.slice(-4), t0 = pts[0].at;
+  const xs = pts.map(p => (p.at - t0) / DAY), ys = pts.map(p => p.oct.cst), n = pts.length;
+  const mx = xs.reduce((a, b) => a + b) / n, my = ys.reduce((a, b) => a + b) / n;
+  let sxx = 0, sxy = 0; xs.forEach((x, i) => { sxx += (x - mx) ** 2; sxy += (x - mx) * (ys[i] - my); });
+  // a rate needs scans at least two weeks apart; same-day repeats only give a change, not a trend
+  const slope = sxx && xs[n - 1] - xs[0] >= 14 ? sxy / sxx : 0;
+  return { last, prev, slope, delta: last.oct.cst - prev.oct.cst, deltaPct: (last.oct.cst - prev.oct.cst) / prev.oct.cst * 100,
+    crossDays: slope > 0.005 && last.oct.cst < th ? (th - last.oct.cst) / slope : null };
+}
+
+/* plan engine: guideline rows (ICO 2017, DRCR thresholds) + the twin's own trend rows (labelled not validated) */
+function propose(v, series, grade, ncidme, setting) {
+  const T = ICO[setting] || ICO.low, rows = [];
+  if (v.visionLoss) rows.push({ d: 0, ref: true, src: "Service protocol", txt: "Sudden vision loss reported: same-day referral with an escort." });
+  if (grade) { const [d, txt, ref] = T[grade]; rows.push({ d, ref, src: "ICO 2017", txt: `${GRADES[grade]}: re-examine in ${txt}${ref ? " and refer to an ophthalmologist" : ", no referral needed"}.` }); }
+  let cidme = false, th = null, tr = null;
+  if (v.oct) {
+    const sx = v.sex === "M" ? "M" : "F", lbl = `${DEV_NAME[v.oct.device]} scale, ${sx === "M" ? "male" : "female"}`;
+    th = DME_T[v.oct.device][sx]; cidme = v.oct.cst >= th; tr = trend(series, th);
+    if (cidme) { const [d, txt, ref] = T.cidme; rows.push({ d, ref, src: "DRCR + ICO 2017", txt: `Centre thickness ${v.oct.cst} µm is at or above ${th} µm (${lbl}): centre-involved macular oedema. Re-examine within ${txt} and refer.` }); }
+    else rows.push({ info: true, src: "DRCR threshold", txt: `Centre thickness ${v.oct.cst} µm is below the ${th} µm threshold for centre-involved oedema (${lbl}).` });
+  } else rows.push({ info: true, src: "Twin", txt: "No OCT scan this visit, so the plan uses the photo grade only." });
+  if (ncidme && !cidme) { const [d, txt, ref] = T.ncidme; rows.push({ d, ref, src: "ICO 2017", txt: `Oedema outside the centre: re-examine in ${txt}${ref ? " and refer" : " (refer if laser treatment is available)"}.` }); }
+  const guideD = Math.min(Infinity, ...rows.filter(r => !r.info).map(r => r.d));
+  if (tr && !cidme && isFinite(guideD)) {
+    if (tr.deltaPct >= 10) { const d = Math.min(91, Math.round(guideD / 2)); if (d < guideD) rows.push({ d, ref: false, twin: true, src: "Twin trend · not validated", txt: `Centre thickness rose ${tr.delta} µm (+${tr.deltaPct.toFixed(1)}%) since the last scan. DRCR studies treat a 10% change as meaningful, so the twin suggests an earlier check.` }); }
+    if (tr.crossDays != null && tr.crossDays < guideD) { const d = Math.max(14, Math.round(tr.crossDays - 14)); rows.push({ d, ref: false, twin: true, src: "Twin trend · not validated", txt: `At the current rate (+${(tr.slope * 30.4).toFixed(1)} µm a month), centre thickness would reach ${th} µm in about ${fmtDays(tr.crossDays)}. The twin suggests checking before then.` }); }
+  }
+  const act = rows.filter(r => !r.info);
+  if (!act.length) return { rows, ready: false, th, tr, cidme };
+  const dueDays = Math.min(...act.map(r => r.d)), refs = act.filter(r => r.ref), refer = refs.length > 0;
+  const twinChanged = act.some(r => r.twin && r.d === dueDays) && act.filter(r => !r.twin).every(r => r.d > dueDays);
+  return { rows, ready: true, dueDays, refer, referDays: refer ? Math.min(...refs.map(r => r.d)) : null, th, tr, cidme, twinChanged };
+}
+const levelOf = (plan, v) => v.visionLoss || (plan.refer && plan.referDays <= 30) ? "red" : plan.refer || plan.dueDays < 183 || plan.twinChanged ? "amber" : "green";
+
+/* ETDRS 9-sector grid, the standard OCT report layout */
+function etdrsSVG(oct, eye, prev, view) {
+  if (!oct) return '<div class="empty" style="padding:16px">No OCT scan for this visit.</div>';
+  const s = 34, nas = eye === "OS" ? 180 : 0, deg = { S: 90, I: 270, N: nas, T: nas + 180 };
+  const pt = (r, a) => [+(r * s * Math.cos(a * Math.PI / 180)).toFixed(2), +(-r * s * Math.sin(a * Math.PI / 180)).toFixed(2)];
+  const sector = (r0, r1, a0, a1) => { const [x0, y0] = pt(r1, a0), [x1, y1] = pt(r1, a1), [x2, y2] = pt(r0, a1), [x3, y3] = pt(r0, a0); return `M${x0},${y0}A${r1 * s},${r1 * s} 0 0 0 ${x1},${y1}L${x2},${y2}A${r0 * s},${r0 * s} 0 0 1 ${x3},${y3}Z`; };
+  const fillFor = (val, pv) => view === "change" && pv != null ? ramp(CHANGE_STOPS, val - pv) : ramp(THICK_STOPS, val);
+  const label = (val, pv, x, y) => { const ink = inkOn(fillFor(val, pv)), d = pv != null ? val - pv : null;
+    return `<text x="${x}" y="${y + (d != null ? -1 : 4)}" fill="${ink}" class="et-v">${val}</text>` + (d != null ? `<text x="${x}" y="${y + 10}" fill="${ink}" class="et-d">${d > 0 ? "+" : d < 0 ? "−" : "±"}${Math.abs(d)}</text>` : ""); };
+  let out = "";
+  [["outer", 1.5, 3, 2.25], ["inner", 0.5, 1.5, 1.0]].forEach(([k, r0, r1, rm]) => Q4.forEach(q => {
+    const a = deg[q], val = oct[k][q], pv = prev ? prev[k][q] : null, [lx, ly] = pt(rm, a);
+    out += `<path d="${sector(r0, r1, a - 45, a + 45)}" fill="${cssRGB(fillFor(val, pv))}" stroke="var(--surface)" stroke-width="1.5"><title>${k === "inner" ? "Inner" : "Outer"} ${({ S: "superior", N: "nasal", I: "inferior", T: "temporal" })[q]}: ${val} µm${pv != null ? ` (was ${pv})` : ""}</title></path>` + label(val, pv, lx, ly);
+  }));
+  const pc = prev ? prev.cst : null;
+  out += `<circle r="${0.5 * s}" fill="${cssRGB(fillFor(oct.cst, pc))}" stroke="var(--surface)" stroke-width="1.5"><title>Centre subfield: ${oct.cst} µm${pc != null ? ` (was ${pc})` : ""}</title></circle>` + label(oct.cst, pc, 0, 0);
+  Q4.forEach(q => { const [x, y] = pt(3.33, deg[q]); out += `<text x="${x}" y="${y}" class="et-ax">${q}</text>`; });
+  const legend = view === "change" && prev
+    ? `<div class="scale"><i style="background:linear-gradient(90deg,${CHANGE_STOPS.map(s => s[1]).join(",")})"></i><span><em>−40 µm thinner</em><em>no change</em><em>+40 µm thicker</em></span></div>`
+    : `<div class="scale"><i style="background:linear-gradient(90deg,${THICK_STOPS.map(s => s[1]).join(",")})"></i><span><em>150 µm</em><em>300</em><em>450 µm</em></span></div>`;
+  return `<svg viewBox="-118 -118 236 236" class="etdrs" role="img" aria-label="ETDRS thickness grid, centre ${oct.cst} micrometres">${out}</svg>` + legend;
+}
+
+/* centre thickness over time, with the DRCR threshold and the twin's projection */
+function trendSVG(series, th, proj) {
+  if (!series.length) return "";
+  const W = 320, H = 176, L = 36, R = 12, T = 18, B = 24;
+  const ts = series.map(p => p.at).concat(proj ? [proj.toAt] : []), x0 = Math.min(...ts), x1 = Math.max(...ts, x0 + 60 * DAY);
+  const vals = series.map(p => p.oct.cst).concat([th], proj ? [proj.toCst] : []);
+  const span = Math.max(...vals) - Math.min(...vals) + 24, step = [10, 20, 25, 50, 100, 200, 500].find(st => span / st <= 6) || 1000;
+  const y0 = Math.floor((Math.min(...vals) - 12) / step) * step, y1 = Math.ceil((Math.max(...vals) + 12) / step) * step;
+  const X = t => +(L + (t - x0) / (x1 - x0) * (W - L - R)).toFixed(1), Y = v => +(T + (1 - (v - y0) / (y1 - y0)) * (H - T - B)).toFixed(1);
+  let g = "";
+  for (let v = y0; v <= y1; v += step) g += `<line class="gl" x1="${L}" x2="${W - R}" y1="${Y(v)}" y2="${Y(v)}"/><text x="${L - 6}" y="${Y(v) + 3}" text-anchor="end">${v}</text>`;
+  g += `<line x1="${L}" x2="${W - R}" y1="${Y(th)}" y2="${Y(th)}" stroke="var(--danger)" stroke-width="1.5" stroke-dasharray="5 4"/><text x="${L + 4}" y="${Y(th) - 5}" text-anchor="start">Centre-oedema threshold ${th} µm</text>`;
+  const last = series[series.length - 1];
+  if (proj) g += `<line x1="${X(last.at)}" y1="${Y(last.oct.cst)}" x2="${X(proj.toAt)}" y2="${Y(proj.toCst)}" stroke="var(--muted)" stroke-width="1.5" stroke-dasharray="3 4"/><circle cx="${X(proj.toAt)}" cy="${Y(proj.toCst)}" r="4" fill="var(--surface)" stroke="var(--muted)" stroke-width="1.5"><title>Projected at next check: ${proj.toCst} µm (trend, not validated)</title></circle><text x="${X(proj.toAt)}" y="${Y(proj.toCst) + (proj.toCst > last.oct.cst ? -9 : 15)}" text-anchor="end">projection · not validated</text>`;
+  if (series.length > 1) g += `<polyline points="${series.map(p => X(p.at) + "," + Y(p.oct.cst)).join(" ")}" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round"/>`;
+  series.forEach(p => { g += `<circle cx="${X(p.at)}" cy="${Y(p.oct.cst)}" r="4.5" fill="var(--accent)" stroke="var(--surface)" stroke-width="2"/><circle cx="${X(p.at)}" cy="${Y(p.oct.cst)}" r="12" fill="transparent"><title>${fmtDate(p.at)}: ${p.oct.cst} µm</title></circle>`; });
+  const short = t => new Date(t).toLocaleDateString(undefined, { month: "short", year: "numeric" });
+  g += `<text x="${X(series[0].at)}" y="${H - 6}" text-anchor="start">${short(series[0].at)}</text>`;
+  const projLbl = proj && X(proj.toAt) - X(last.at) > 70;
+  if (series.length > 1 && X(last.at) - X(series[0].at) > 60) g += `<text x="${X(last.at)}" y="${H - 6}" text-anchor="${projLbl ? "middle" : "end"}">${short(last.at)}</text>`;
+  if (projLbl) g += `<text x="${W - R}" y="${H - 6}" text-anchor="end">${short(proj.toAt)}</text>`;
+  return `<svg viewBox="0 0 ${W} ${H}" class="trend" role="img" aria-label="Centre thickness over ${series.length} scans">${g}</svg><p class="cap">Centre subfield thickness, µm, ${DEV_NAME[last.oct.device]} scale. Hover a point for its date.</p>`;
+}
+
 /* ---------------- 3D twin viewer ---------------- */
 function scleraTexture() {
   const c = canvasOf(1024, 512), g = c.getContext("2d");
@@ -458,12 +667,33 @@ function makeViewer(host) {
   const retMesh = new THREE.Mesh(rg, retMat); retMesh.rotation.x = -Math.PI / 2; ret.add(retMesh);
   const base = rg.attributes.position.array.slice();
 
+  // macula twin: surface height = measured OCT thickness (×4 exaggerated), 1.3 world units = 3 mm radius (6 mm ETDRS grid)
+  const mac = new THREE.Group(); mac.visible = false; scene.add(mac);
+  const MR = 1.3, HS = (MR / 3) / 1000 * 4, H0 = -0.42;
+  const mgeo = new THREE.RingGeometry(0.0001, MR, 144, 60); mgeo.rotateX(-Math.PI / 2);
+  const mpos = mgeo.attributes.position, mcount = mpos.count;
+  mgeo.setAttribute("color", new THREE.BufferAttribute(new Float32Array(mcount * 3), 3));
+  const curY = new Float32Array(mcount).fill(H0), tgtY = new Float32Array(mcount).fill(H0);
+  mac.add(new THREE.Mesh(mgeo, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.55, metalness: 0, side: THREE.DoubleSide })));
+  const floor = new THREE.Mesh(new THREE.CircleGeometry(MR * 1.03, 96), new THREE.MeshBasicMaterial({ color: 0x1a2633, side: THREE.DoubleSide }));
+  floor.rotation.x = -Math.PI / 2; floor.position.y = H0 - 0.004; mac.add(floor);
+  let macLines = null, tween = 0;
+
   let mode = "eye";
-  const frame = () => { if (mode === "eye") { cam.position.set(0.9, 0.35, 3.3); ctl.target.set(0, 0, 0); } else { cam.position.set(0, 2.1, 2.3); ctl.target.set(0, -0.15, 0); } ctl.update(); };
+  const frame = () => {
+    if (mode === "eye") { cam.position.set(0.9, 0.35, 3.3); ctl.target.set(0, 0, 0); }
+    else if (mode === "macula") { cam.position.set(0, 2.0, 2.2); ctl.target.set(0, -0.2, 0); }
+    else { cam.position.set(0, 2.1, 2.3); ctl.target.set(0, -0.15, 0); }
+    ctl.update();
+  };
   frame();
   const resize = () => { const w = host.clientWidth, h = host.clientHeight; if (!w || !h) return; R.setSize(w, h, false); cam.aspect = w / h; cam.updateProjectionMatrix(); };
   new ResizeObserver(resize).observe(host); resize();
-  (function loop() { requestAnimationFrame(loop); if (!host.offsetParent) return; ctl.update(); R.render(scene, cam); })();
+  (function loop() {
+    requestAnimationFrame(loop);
+    if (tween) { let moving = false; for (let i = 0; i < mcount; i++) { const d = tgtY[i] - curY[i]; if (Math.abs(d) > 1e-4) { curY[i] += d * 0.14; moving = true; } else curY[i] = tgtY[i]; mpos.setY(i, curY[i]); } mpos.needsUpdate = true; mgeo.computeVertexNormals(); if (!moving) tween = 0; }
+    if (!host.offsetParent) return; ctl.update(); R.render(scene, cam);
+  })();
 
   return {
     setIris(canvas) { const t = new THREE.CanvasTexture(canvas); t.encoding = THREE.sRGBEncoding; t.anisotropy = 4; if (irisMat.map) irisMat.map.dispose(); irisMat.map = t; irisMat.needsUpdate = true; },
@@ -483,15 +713,65 @@ function makeViewer(host) {
       }
       p.needsUpdate = true; rg.computeVertexNormals();
     },
-    setMode(m) { mode = m; eye.visible = m === "eye"; ret.visible = m === "retina"; ctl.autoRotate = m === "eye"; frame(); }
+    setMacula(oct, eyeSide, prev, view = "thickness") {
+      const col = mgeo.attributes.color, c = new THREE.Color();
+      if (macLines) { mac.remove(macLines); macLines.traverse(o => o.geometry && o.geometry.dispose()); macLines = null; }
+      if (!oct) { for (let i = 0; i < mcount; i++) { tgtY[i] = H0 + 0.003; col.setXYZ(i, 0.11, 0.15, 0.2); } col.needsUpdate = true; tween = 1; return; }
+      const f = octField(oct, eyeSide), fp = prev && view === "change" ? octField(prev, eyeSide) : null, k = 3 / MR;
+      for (let i = 0; i < mcount; i++) {
+        const x = mpos.getX(i) * k, y = -mpos.getZ(i) * k, t = f(x, y);
+        tgtY[i] = H0 + t * HS;
+        c.setRGB(...(fp ? ramp(CHANGE_STOPS, t - fp(x, y)) : ramp(THICK_STOPS, t))).convertSRGBToLinear();
+        col.setXYZ(i, c.r, c.g, c.b);
+      }
+      col.needsUpdate = true; tween = 1;
+      // ETDRS rings (1, 3, 6 mm) and sector boundaries, drawn on the surface
+      macLines = new THREE.Group();
+      const lm = new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.55 });
+      const P = (xm, ym) => new THREE.Vector3(xm / k, H0 + f(xm, ym) * HS + 0.008, -ym / k);
+      [0.5, 1.5, 2.99].forEach(r => { const pts = []; for (let a = 0; a <= 128; a++) { const th = a / 128 * Math.PI * 2; pts.push(P(r * Math.cos(th), r * Math.sin(th))); } macLines.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), lm)); });
+      [45, 135, 225, 315].forEach(dg => { const th = dg * Math.PI / 180, pts = []; for (let s = 0; s <= 30; s++) { const r = 0.5 + s / 30 * 2.49; pts.push(P(r * Math.cos(th), r * Math.sin(th))); } macLines.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), lm)); });
+      mac.add(macLines);
+    },
+    setMode(m) { mode = m; eye.visible = m === "eye"; ret.visible = m === "retina"; mac.visible = m === "macula"; ctl.autoRotate = m === "eye"; frame(); },
+    get mode() { return mode; }
   };
 }
 
 /* ---------------- app state ---------------- */
 const S = { role: "operator", photo: null, iris: { cx: .5, cy: .5, r: .19 }, isSample: true, fundus: null, ai: null,
-  intake: { diabetes: "no", visionLoss: "no", eye: "OD" }, visits: [], selected: null, viewing: null, triage: null, ptCode: null, ptUnsub: null };
+  intake: { sex: "F", diabetes: "no", visionLoss: "no", eye: "OD" }, visits: [], twins: [], selected: null, viewing: null, ptCode: null, ptUnsub: null,
+  oct: null, prevOct: null, octSim: false, macView: "thickness", formFor: null, modeFor: null, prop: null, ovTouched: false };
 let viewers = {};
 const ensureViewer = (k, host) => viewers[k] || (viewers[k] = makeViewer($(host)));
+function setStageMode(k, m) {
+  const seg = document.querySelector(`.stage .seg[data-stage="${k}"]`);
+  seg?.querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", x.dataset.m === m));
+  viewers[k]?.setMode(m);
+}
+
+/* demo OCT simulator: continues from the patient's previous scan when there is one */
+function simOct(sc, device, prev) {
+  const N = NORMAL[device], j = () => Math.round((Math.random() - .5) * 6);
+  const b = prev ? prev : { cst: N.cst, inner: { S: N.inner + 4, N: N.inner + 6, I: N.inner + 2, T: N.inner - 8 }, outer: { S: N.outer + 2, N: N.outer + 16, I: N.outer - 4, T: N.outer - 14 } };
+  const add = { normal: [0, 0, 0], early: [16, 10, 4], dme: prev ? [45, 25, 8] : [78, 40, 14] }[sc] || [0, 0, 0];
+  const o = { device, simulated: true, cst: b.cst + add[0] + j(), inner: {}, outer: {} };
+  Q4.forEach(q => { o.inner[q] = b.inner[q] + add[1] + j(); o.outer[q] = b.outer[q] + add[2] + j(); });
+  return o;
+}
+/* the twin's visit history for one eye, oldest first */
+function histFor(v) {
+  const id = v.twinId || twinId(v.patientKey, v.eye), tw = S.twins.find(t => t.id === id);
+  const h = tw?.history?.length ? tw.history.map(e => ({ ...e })) : S.visits.filter(x => x.patientKey === v.patientKey && x.eye === v.eye).map(x => ({ code: x.code, at: x.createdAt, oct: x.oct || null }));
+  if (!h.some(e => e.code === v.code)) h.push({ code: v.code, at: v.createdAt, oct: v.oct || null });
+  return h.sort((a, b) => a.at - b.at);
+}
+function prevOctOf(v, hist) {
+  if (!v.oct) return null;
+  const i = hist.findIndex(e => e.code === v.code);
+  for (let j = i - 1; j >= 0; j--) if (hist[j].oct && hist[j].oct.device === v.oct.device) return hist[j].oct;
+  return null;
+}
 
 /* role switching */
 function setRole(r) {
@@ -503,7 +783,7 @@ function setRole(r) {
   if (typeof THREE === "undefined") return;
   if (r === "operator") ensureViewer("op", "op-stage");
   if (r === "doctor") ensureViewer("dr", "dr-stage");
-  if (r === "patient") { const v = ensureViewer("pt", "pt-stage"); if (!S.ptCode) { const s = sampleEyePhoto(2); v.setIris(irisCrop(s.canvas, s.iris)); v.setRetina(sampleFundus(2)); } }
+  if (r === "patient") { const v = ensureViewer("pt", "pt-stage"); if (!S.ptCode) { const s = sampleEyePhoto(2); v.setIris(irisCrop(s.canvas, s.iris)); v.setRetina(sampleFundus(2)); v.setMacula(simOct("normal", "cirrus"), "OD"); } }
 }
 document.querySelectorAll(".roles button").forEach(b => b.onclick = () => { setRole(b.dataset.role); window.scrollTo({ top: 0 }); });
 window.addEventListener("hashchange", () => { const h = location.hash.slice(1); if (["operator", "doctor", "patient"].includes(h) && h !== S.role) setRole(h); });
@@ -569,13 +849,76 @@ $("fundus-file").addEventListener("change", async e => {
   catch { toast("That fundus file couldn't be opened."); }
 });
 
-document.querySelectorAll("#op-intake .seg").forEach(seg => seg.addEventListener("click", e => {
-  const b = e.target.closest("button"); if (!b) return;
-  seg.querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", x === b));
-  S.intake[seg.dataset.field] = b.dataset.v;
+function setIntake(field, v) {
+  S.intake[field] = v;
+  document.querySelector(`#op-intake .seg[data-field="${field}"]`)?.querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", x.dataset.v === v));
   const urgent = S.intake.visionLoss === "yes"; $("yn-loss").classList.toggle("alert", urgent); $("op-urgent").hidden = !urgent;
+  if (field === "eye") checkReturning();
+}
+document.querySelectorAll("#op-intake .seg").forEach(seg => seg.addEventListener("click", e => {
+  const b = e.target.closest("button"); if (b) setIntake(seg.dataset.field, b.dataset.v);
 }));
 $("op-intake").addEventListener("submit", e => e.preventDefault());
+
+/* returning patient: the new visit extends the same eye twin */
+function checkReturning() {
+  const name = $("op-name").value.trim();
+  const t = name ? S.twins.find(x => x.id === twinId(keyOf(name), S.intake.eye)) : null;
+  const last = t?.history?.slice().reverse().find(e => e.oct);
+  S.prevOct = last?.oct || null;
+  $("op-returning").hidden = !t;
+  if (t) {
+    $("op-returning").textContent = `Returning patient: ${t.history.length} earlier visit${t.history.length === 1 ? "" : "s"} for this eye` + (last ? `, last centre thickness ${last.oct.cst} µm on ${fmtDate(last.at)} (${DEV_NAME[last.oct.device]}). Use the same OCT scale so changes are comparable.` : ".") + " This visit updates the same eye twin.";
+    if (last && !readOct()) $("oct-device").value = last.oct.device;
+  }
+  updateOctPreview();
+}
+let nameTimer; $("op-name").addEventListener("input", () => { clearTimeout(nameTimer); nameTimer = setTimeout(checkReturning, 250); });
+
+/* OCT step */
+const octInputs = [...document.querySelectorAll("#oct-grid input")];
+function readOct() {
+  const o = { device: $("oct-device").value, simulated: S.octSim, inner: {}, outer: {} };
+  for (const inp of octInputs) { const v = Math.round(+inp.value); if (!inp.value || !(v >= 100 && v <= 900)) return null; const [a, b] = inp.dataset.k.split("."); if (b) o[a][b] = v; else o[a] = v; }
+  return o;
+}
+function fillOct(o) { octInputs.forEach(inp => { const [a, b] = inp.dataset.k.split("."); inp.value = o ? (b ? o[a][b] : o[a]) : ""; }); }
+function updateOctPreview() {
+  S.oct = readOct();
+  const filled = octInputs.filter(i => i.value).length, prev = S.oct && S.prevOct && S.prevOct.device === S.oct.device ? S.prevOct : null;
+  $("oct-state").textContent = S.oct
+    ? `Centre ${S.oct.cst} µm${prev ? ` (last scan ${prev.cst} µm, ${S.oct.cst - prev.cst >= 0 ? "+" : "−"}${Math.abs(S.oct.cst - prev.cst)})` : ""}. Twin macula updated${S.oct.simulated ? " · simulated values" : ""}.`
+    : filled ? `Fill in all 9 values (100–900 µm). ${filled} of 9 done.` : "No OCT this visit. The doctor will grade from the photo only.";
+  const v = viewers.op; if (v) v.setMacula(S.oct, S.intake.eye, prev, "thickness");
+}
+octInputs.forEach(inp => inp.addEventListener("input", () => { S.octSim = false; updateOctPreview(); }));
+$("oct-device").addEventListener("change", updateOctPreview);
+$("oct-sim").onclick = () => {
+  const dev = $("oct-device").value, prev = S.prevOct && S.prevOct.device === dev ? S.prevOct : null;
+  fillOct(simOct($("oct-scenario").value, dev, prev)); S.octSim = true; updateOctPreview(); setStageMode("op", "macula");
+};
+$("oct-clear").onclick = () => { fillOct(null); S.octSim = false; updateOctPreview(); };
+
+/* recall list: approved plans come back to the van as due re-screens */
+function renderRecall() {
+  const now = Date.now(), list = S.twins.filter(t => t.state === "scheduled" && t.dueAt).sort((a, b) => a.dueAt - b.dueAt);
+  const soon = list.filter(t => t.dueAt <= now + 14 * DAY).length;
+  $("recall-count").textContent = list.length ? (soon ? soon + " due now" : list.length + " scheduled") : "";
+  $("recall").innerHTML = list.length ? list.map(t => {
+    const days = Math.round((t.dueAt - now) / DAY);
+    const pill = days < 0 ? `<span class="pill red">Overdue ${fmtDays(-days)}</span>` : days <= 14 ? `<span class="pill amber">Due ${days <= 0 ? "today" : "in " + fmtDays(days)}</span>` : `<span class="pill green">Due ${fmtDate(t.dueAt)}</span>`;
+    return `<div class="ritem"><div class="who"><b>${esc(t.patientName)}</b><br><span class="hint">${t.eye === "OS" ? "Left" : "Right"} eye${t.plan?.refer ? " · referred to clinic" : ""}${t.sample ? " · sample" : ""}</span></div>${pill}<button class="btn" type="button" data-tid="${esc(t.id)}">Start re-screen</button></div>`;
+  }).join("") : '<div class="empty" style="padding:14px">No re-screens scheduled yet. When a specialist approves a care plan, the patient appears here with their due date.</div>';
+}
+$("recall").addEventListener("click", e => {
+  const b = e.target.closest("button[data-tid]"); if (!b) return;
+  const t = S.twins.find(x => x.id === b.dataset.tid); if (!t) return;
+  $("op-name").value = t.patientName; $("op-age").value = t.age || "";
+  setIntake("sex", t.sex || "F"); setIntake("diabetes", t.diabetes ? "yes" : "no"); setIntake("visionLoss", "no"); setIntake("eye", t.eye || "OD");
+  $("op-sent").hidden = true; $("op-send").hidden = false;
+  $("op-intake").scrollIntoView({ behavior: "smooth", block: "start" });
+  toast("Intake filled for " + t.patientName + ". Capture the eye, then scan.");
+});
 
 const makeCode = () => { const a = "ACDEFGHJKMNPQRTUVWXY34679"; let s = "HR-"; for (let i = 0; i < 5; i++) s += a[Math.floor(Math.random() * a.length)]; return s; };
 async function dataURL(canvas, q) { return canvas.toDataURL("image/jpeg", q); }
@@ -587,16 +930,23 @@ $("op-send").onclick = async () => {
   try {
     const code = makeCode(), q = S.q || quality(S.photo, S.iris);
     const crop = irisCrop(S.photo, S.iris, 384), thumb = fit(S.photo, 480);
+    const key = keyOf(name), tid = twinId(key, S.intake.eye), oct = readOct();
     const doc = {
-      code, createdAt: Date.now(), patientName: name, patientKey: name.toLowerCase().replace(/\s+/g, " "),
-      age: +$("op-age").value || null, diabetes: S.intake.diabetes === "yes", visionLoss: S.intake.visionLoss === "yes", eye: S.intake.eye,
+      code, createdAt: Date.now(), patientName: name, patientKey: key, twinId: tid,
+      age: +$("op-age").value || null, sex: S.intake.sex, diabetes: S.intake.diabetes === "yes", visionLoss: S.intake.visionLoss === "yes", eye: S.intake.eye,
       status: S.intake.visionLoss === "yes" ? "urgent" : "waiting", sample: S.isSample,
       iqa: { score: q.score, focus: q.focus, light: q.light, centred: q.centred, glare: q.glare, ai: S.ai || null },
-      iris: S.iris, irisData: await dataURL(crop, .85), thumbData: await dataURL(thumb, .72)
+      iris: S.iris, irisData: await dataURL(crop, .85), thumbData: await dataURL(thumb, .72), oct: oct || null
     };
     if (!S.isSample) { const full = await toBlob(fit(S.photo, 1600), "image/jpeg", .88); const id = await Data.upload(full); if (id) doc.photoId = id; }
     if (S.fundus) { const fd = fit(S.fundus, 448); doc.fundusData = await dataURL(fd, .8); const id = await Data.upload(await toBlob(fit(S.fundus, 1400), "image/jpeg", .88)); if (id) doc.fundusId = id; }
-    await Data.put(code, doc);
+    await Data.set("visits", code, doc);
+    // extend this eye's twin with the new measurement; it waits for review and leaves the recall list
+    const old = await Data.get("twins", tid);
+    const twin = old || { id: tid, patientKey: key, eye: doc.eye, createdAt: doc.createdAt, history: [], plan: null, dueAt: null };
+    twin.history = [...(twin.history || []), { code, at: doc.createdAt, oct: doc.oct }].slice(-40);
+    Object.assign(twin, { patientName: name, age: doc.age, sex: doc.sex, diabetes: doc.diabetes, state: "awaiting-review", latestCode: code, updatedAt: Date.now(), sample: !!doc.sample });
+    await Data.set("twins", tid, twin);
     $("op-code").textContent = code; $("op-sent").hidden = false; btn.hidden = true;
     toast(doc.status === "urgent" ? "Sent as urgent — the doctor sees it first." : "Visit sent to the specialist queue.");
   } catch (e) {
@@ -606,8 +956,8 @@ $("op-send").onclick = async () => {
 $("op-copy").onclick = async () => { const t = $("op-code").textContent; try { await navigator.clipboard.writeText(t); toast("Code copied."); } catch { const r = document.createRange(); r.selectNodeContents($("op-code")); getSelection().removeAllRanges(); getSelection().addRange(r); toast("Code selected — copy it from here."); } };
 $("op-next").onclick = () => {
   $("op-sent").hidden = true; $("op-send").hidden = false; $("op-name").value = ""; $("op-age").value = "";
-  document.querySelectorAll('#op-intake .seg').forEach(seg => seg.querySelectorAll("button").forEach(b => b.setAttribute("aria-pressed", b.dataset.v === (seg.dataset.field === "eye" ? "OD" : "no"))));
-  S.intake = { diabetes: "no", visionLoss: "no", eye: "OD" }; $("yn-loss").classList.remove("alert"); $("op-urgent").hidden = true;
+  fillOct(null); S.octSim = false; S.prevOct = null;
+  Object.entries({ sex: "F", diabetes: "no", visionLoss: "no", eye: "OD" }).forEach(([k, v]) => setIntake(k, v));
   S.fundus = null; $("fundus-state").textContent = "No fundus photo — retina view will be simulated"; ensureViewer("op", "op-stage").setRetina(sampleFundus(1));
   const s = sampleEyePhoto(1); setPhoto(s.canvas, s.iris, true); window.scrollTo({ top: 0, behavior: "smooth" });
 };
@@ -639,8 +989,8 @@ function renderQueue() {
   const list = S.visits.slice().sort((a, b) => rank(a) - rank(b) || b.createdAt - a.createdAt);
   const open = list.filter(v => v.status !== "reviewed").length;
   $("q-count").textContent = open ? open + " waiting" : "All reviewed";
-  $("queue").innerHTML = list.length ? list.map(v => `<button class="qitem" data-code="${esc(v.code)}" aria-current="${S.selected === v.code}"><span class="code">${esc(v.code)}${v.sample ? ' <span class="pill sample">Sample</span>' : ""}</span><span class="pill">${statusPill(v)}</span><span class="who">${esc(v.patientName)}</span><span class="when">${ago(v.createdAt)} · quality ${v.iqa?.score ?? "–"}%</span></button>`).join("")
-    : '<div class="empty">No visits yet. Send one from the Operator tab, or add a sample visit.</div>';
+  $("queue").innerHTML = list.length ? list.map(v => `<button class="qitem" data-code="${esc(v.code)}" aria-current="${S.selected === v.code}"><span class="code">${esc(v.code)}${v.sample ? ' <span class="pill sample">Sample</span>' : ""}</span><span class="pill">${statusPill(v)}</span><span class="who">${esc(v.patientName)}</span><span class="when">${ago(v.createdAt)}${v.oct ? " · centre " + v.oct.cst + " µm" : " · no OCT"}</span></button>`).join("")
+    : '<div class="empty">No visits yet. Send one from the Operator tab, or add a sample patient.</div>';
 }
 $("queue").addEventListener("click", e => { const b = e.target.closest(".qitem"); if (b) selectVisit(b.dataset.code); });
 async function texturesFor(v) {
@@ -652,70 +1002,195 @@ async function texturesFor(v) {
   if (fsrc) { try { retC = fit(await loadImg(fsrc), 900); } catch { try { retC = v.fundusData ? fit(await loadImg(v.fundusData), 900) : null; } catch {} } }
   return { irisC, retC: retC || sampleFundus((v.code.charCodeAt(4) || 1) % 7 + 1), simulated: !retC };
 }
-async function showInViewer(viewer, v, labelEl, footEl) {
-  const t = await texturesFor(v);
-  viewer.setIris(t.irisC); viewer.setRetina(t.retC);
-  if (footEl) footEl.textContent = (t.simulated ? "Retina view simulated (no fundus photo) · " : "Retina twin built from fundus photo · ") + "drag to rotate";
+const shownTex = {};
+async function showInViewer(key, viewer, v, footEl, view = "thickness") {
+  const hist = histFor(v), prev = prevOctOf(v, hist);
+  viewer.setMacula(v.oct || null, v.eye, prev, view);
+  if (shownTex[key] !== v.code) {
+    shownTex[key] = v.code;
+    const t = await texturesFor(v);
+    if (shownTex[key] !== v.code) return;
+    viewer.setIris(t.irisC); viewer.setRetina(t.retC);
+    if (footEl) footEl.textContent = (t.simulated ? "Retina simulated (no fundus photo)" : "Retina from fundus photo") + (v.oct ? " · macula from OCT values, height ×4" : " · no OCT for this visit") + " · drag to rotate";
+  }
 }
+
+/* twin measurements panel for the visit being viewed */
+function renderTwin(v) {
+  const hist = histFor(v), prev = prevOctOf(v, hist);
+  $("dr-etdrs").innerHTML = etdrsSVG(v.oct, v.eye, prev, S.macView);
+  if (!v.oct) { $("dr-trend").innerHTML = ""; $("dr-twin-note").textContent = "This visit has no OCT scan, so the twin's measurements are unchanged."; return; }
+  const series = seriesFor(hist, v.code, v.oct.device), th = DME_T[v.oct.device][v.sex === "M" ? "M" : "F"], tr = trend(series, th);
+  const days = v.code === S.selected && S.prop?.ready ? S.prop.dueDays : v.plan?.dueDays;
+  const proj = tr && tr.slope && days > 0 ? { toAt: tr.last.at + days * DAY, toCst: Math.round(tr.last.oct.cst + tr.slope * days) } : null;
+  $("dr-trend").innerHTML = trendSVG(series, th, proj);
+  const other = hist.some(e => e.oct && e.oct.device !== v.oct.device);
+  $("dr-twin-note").textContent = `${series.length} OCT scan${series.length === 1 ? "" : "s"} in this eye's twin. ` +
+    (prev ? `${S.macView === "change" ? "Colours show" : "Numbers under each value show"} the change since the scan on ${fmtDate(series[series.length - 2].at)}.` : "Change tracking starts with the second scan.") +
+    (other ? " Scans on a different OCT scale are left out, because thickness values differ between devices." : "") +
+    (v.oct.simulated ? " Values are simulated for the demo." : "");
+}
+$("dr-macmode").addEventListener("click", e => {
+  const b = e.target.closest("button"); if (!b) return;
+  S.macView = b.dataset.v; $("dr-macmode").querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", x === b));
+  const v = S.visits.find(x => x.code === S.viewing); if (!v) return;
+  renderTwin(v); showInViewer("dr", ensureViewer("dr", "dr-stage"), v, $("dr-foot"), S.macView);
+  setStageMode("dr", "macula");
+});
+
+/* proposed care plan for the current visit */
+function renderProposal() {
+  const cur = S.visits.find(x => x.code === S.selected); if (!cur) return;
+  const hist = histFor(cur), series = cur.oct ? seriesFor(hist, cur.code, cur.oct.device) : [];
+  const g = $("dr-grade").value, p = propose(cur, series, g, $("dr-ncidme").checked, $("dr-setting").value);
+  S.prop = p;
+  const tag = r => `<span class="src ${r.twin ? "twin" : r.info ? "info" : ""}">${esc(r.src)}</span>`;
+  const head = !g ? `<p class="hint" style="margin:0">Choose a retinopathy grade to get a proposed plan.</p>`
+    : p.ready ? `<div class="prop-head"><b>Re-screen ${p.dueDays === 0 ? "today" : "in " + fmtDays(p.dueDays)}</b>${p.dueDays ? `<span>by ${fmtDate(Date.now() + p.dueDays * DAY)}</span>` : ""}</div><div class="prop-head"><b>${p.refer ? "Refer to an ophthalmologist " + (p.referDays <= 0 ? "today" : "within " + fmtDays(p.referDays)) : "No referral needed"}</b><span class="pill ${levelOf({ ...p }, cur)}">${lvlText[levelOf({ ...p }, cur)]}</span></div>` : "";
+  $("dr-proposal").innerHTML = head + `<ul class="basis">${p.rows.map(r => `<li>${tag(r)}<span>${esc(r.txt)}</span></li>`).join("")}</ul>`;
+  if (p.ready && !S.ovTouched) { const opts = [...$("ov-days").options].map(o => +o.value); $("ov-days").value = String(opts.reduce((a, b) => Math.abs(b - p.dueDays) < Math.abs(a - p.dueDays) ? b : a)); $("ov-refer").value = p.refer ? "yes" : "no"; }
+  $("dr-send").disabled = !(g && p.ready);
+  if (S.viewing === S.selected) renderTwin(cur);
+}
+["dr-grade", "dr-setting", "dr-ncidme"].forEach(id => $(id).addEventListener("change", () => { if (id === "dr-setting") store.set("eyetwin.setting", $(id).value); renderProposal(); }));
+["ov-days", "ov-refer"].forEach(id => $(id).addEventListener("change", () => S.ovTouched = true));
+
 function selectVisit(code, viewingOld) {
   const v = S.visits.find(x => x.code === code); if (!v) return;
-  if (!viewingOld) { S.selected = code; S.viewing = code; S.triage = v.triage?.level || null; $("dr-note").value = v.triage?.note || ""; }
-  else S.viewing = code;
+  if (!viewingOld) { S.selected = code; S.viewing = code; } else S.viewing = code;
   const cur = S.visits.find(x => x.code === S.selected);
+  // reset the form only when a different visit is opened, never on a live update
+  if (S.formFor !== cur.code) {
+    S.formFor = cur.code;
+    $("dr-note").value = cur.triage?.note || "";
+    $("dr-grade").value = cur.grade?.dr || cur.plan?.grade || "";
+    $("dr-ncidme").checked = !!(cur.grade?.ncidme);
+    $("dr-setting").value = cur.plan?.setting || store.get("eyetwin.setting") || "low";
+    $("ov-reason").value = ""; $("dr-override").open = false; S.ovTouched = false;
+  }
   $("dr-empty").hidden = true; $("dr-body").hidden = false;
   $("dr-urgent").hidden = !cur.visionLoss;
-  $("dr-old").hidden = S.viewing === S.selected; $("dr-old").innerHTML = S.viewing !== S.selected ? `Viewing earlier visit ${esc(v.code)} from ${new Date(v.createdAt).toLocaleDateString()}. <button class="btn" type="button" id="dr-back" style="padding:3px 10px;margin-left:6px">Back to current</button>` : "";
+  $("dr-old").hidden = S.viewing === S.selected; $("dr-old").innerHTML = S.viewing !== S.selected ? `Viewing earlier visit ${esc(v.code)} from ${fmtDate(v.createdAt)}. <button class="btn" type="button" id="dr-back" style="padding:3px 10px;margin-left:6px">Back to current</button>` : "";
   if (S.viewing !== S.selected) $("dr-back").onclick = () => selectVisit(S.selected, true);
-  $("dr-title").textContent = cur.patientName; $("dr-pill").outerHTML = `<span class="pill" id="dr-pill">${statusPill(cur).replace(/^<span class="pill ([^"]*)">|<\/span>$/g, "")}</span>`;
+  $("dr-title").textContent = cur.patientName;
   $("dr-pill").className = "pill " + (cur.status === "reviewed" ? cur.triage?.level : cur.status);
+  $("dr-pill").textContent = cur.status === "reviewed" ? (lvlText[cur.triage?.level] || "Reviewed") : cur.status === "urgent" ? "Urgent" : "Waiting";
   const yn = b => b ? "Yes" : "No";
-  $("dr-facts").innerHTML = [["Visit", cur.code], ["Age", cur.age ?? "–"], ["Eye", cur.eye === "OS" ? "Left (OS)" : "Right (OD)"], ["Diabetes", yn(cur.diabetes)], ["Vision loss 48 h", yn(cur.visionLoss)], ["Image quality", (cur.iqa?.score ?? "–") + "%"], ["Captured", new Date(cur.createdAt).toLocaleString()]]
-    .map(([k, val]) => `<div><dt>${k}</dt><dd>${esc(val)}</dd></div>`).join("") + (cur.iqa?.ai ? `<div style="grid-column:1/-1"><dt>Claude photo check</dt><dd>${cur.iqa.ai.usable ? "Usable" : "Retake suggested"} — ${esc(cur.iqa.ai.advice)}</dd></div>` : "");
-  const hist = S.visits.filter(x => x.patientKey === cur.patientKey).sort((a, b) => b.createdAt - a.createdAt);
+  $("dr-facts").innerHTML = [["Visit", cur.code], ["Age", cur.age ?? "–"], ["Sex", cur.sex === "M" ? "Male" : cur.sex === "F" ? "Female" : "–"], ["Eye", cur.eye === "OS" ? "Left (OS)" : "Right (OD)"], ["Diabetes", yn(cur.diabetes)], ["Vision loss 48 h", yn(cur.visionLoss)], ["Image quality", (cur.iqa?.score ?? "–") + "%"], ["OCT centre", cur.oct ? cur.oct.cst + " µm" : "No scan"], ["Captured", new Date(cur.createdAt).toLocaleString()]]
+    .map(([k, val]) => `<div><dt>${k}</dt><dd>${esc(val)}</dd></div>`).join("") + (cur.iqa?.ai ? `<div style="grid-column:1/-1"><dt>Claude photo check</dt><dd>${cur.iqa.ai.usable ? "Usable" : "Retake suggested"} — ${esc(cur.iqa.ai.advice)}</dd></div>` : "")
+    + (cur.plan ? `<div style="grid-column:1/-1"><dt>Approved plan</dt><dd>Re-screen ${cur.plan.dueDays ? "by " + fmtDate(cur.plan.dueAt) : "today"}${cur.plan.refer ? " · referred" : ""}${cur.plan.overridden ? " · changed from the proposal: " + esc(cur.plan.reason) : ""}</dd></div>` : "");
+  const hist = histFor(cur).slice().reverse();
   $("dr-hist-wrap").hidden = hist.length < 2;
-  $("dr-hist").innerHTML = hist.map(h => `<button type="button" data-code="${esc(h.code)}" aria-current="${h.code === S.viewing}"><img src="${h.irisData}" alt="">${h.code === cur.code ? "This visit" : new Date(h.createdAt).toLocaleDateString()}</button>`).join("");
-  document.querySelectorAll("#dr-triage button").forEach(b => b.setAttribute("aria-pressed", b.dataset.l === S.triage));
-  $("dr-send").disabled = !S.triage; $("dr-send").textContent = cur.status === "reviewed" ? "Update result" : "Send result to patient";
+  $("dr-hist").innerHTML = hist.map(h => { const hv = S.visits.find(x => x.code === h.code); return `<button type="button" data-code="${esc(h.code)}" aria-current="${h.code === S.viewing}">${hv ? `<img src="${hv.irisData}" alt="">` : ""}<span>${h.code === cur.code ? "This visit" : fmtDate(h.at)}${h.oct ? `<br>${h.oct.cst} µm` : ""}</span></button>`; }).join("");
+  $("dr-send").textContent = cur.status === "reviewed" ? "Update plan and result" : "Approve plan and send to patient";
   $("dr-label").textContent = S.viewing === S.selected ? "3D EYE TWIN · " + v.code : "EARLIER VISIT · " + v.code;
   renderQueue();
-  showInViewer(ensureViewer("dr", "dr-stage"), v, null, $("dr-foot"));
+  renderProposal();
+  if (S.viewing !== S.selected) renderTwin(v);
+  if (S.modeFor !== cur.code) { S.modeFor = cur.code; ensureViewer("dr", "dr-stage"); setStageMode("dr", cur.oct ? "macula" : "eye"); }
+  showInViewer("dr", ensureViewer("dr", "dr-stage"), v, $("dr-foot"), S.macView);
 }
-$("dr-hist").addEventListener("click", e => { const b = e.target.closest("button"); if (b) selectVisit(b.dataset.code, b.dataset.code !== S.selected); });
-$("dr-triage").addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; S.triage = b.dataset.l; document.querySelectorAll("#dr-triage button").forEach(x => x.setAttribute("aria-pressed", x === b)); $("dr-send").disabled = false; });
+$("dr-hist").addEventListener("click", e => { const b = e.target.closest("button"); if (b && S.visits.some(x => x.code === b.dataset.code)) selectVisit(b.dataset.code, b.dataset.code !== S.selected); });
+
+function planFrom(p, extra) {
+  return { dueDays: p.dueDays, refer: p.refer, referDays: p.referDays, cidme: !!p.cidme, twinChanged: !!p.twinChanged,
+    basis: p.rows.map(r => ({ src: r.src, txt: r.txt, twin: !!r.twin, info: !!r.info })), proposed: { dueDays: p.dueDays, refer: p.refer }, overridden: false, reason: "", ...extra };
+}
 $("dr-send").onclick = async () => {
-  if (!S.selected || !S.triage) return; const btn = $("dr-send"); btn.disabled = true;
-  try { await Data.patch(S.selected, { status: "reviewed", triage: { level: S.triage, note: $("dr-note").value.trim().slice(0, 600), at: Date.now() } }); toast("Result sent. The patient sees it now."); }
-  catch (e) { toast("Couldn't send the result (" + (e?.code || "error") + ")."); }
+  const cur = S.visits.find(x => x.code === S.selected), p = S.prop, grade = $("dr-grade").value;
+  if (!cur || !p?.ready || !grade) return;
+  let dueDays = p.dueDays, refer = p.refer, referDays = p.referDays, overridden = false, reason = "";
+  if (S.ovTouched) {
+    const d = +$("ov-days").value, r = $("ov-refer").value === "yes";
+    if (d !== p.dueDays || r !== p.refer) {
+      reason = $("ov-reason").value.trim();
+      if (!reason) { $("dr-override").open = true; $("ov-reason").focus(); toast("Add a reason for changing the proposed plan."); return; }
+      dueDays = d; refer = r; referDays = r ? (p.refer ? Math.min(p.referDays, d) : d) : null; overridden = true;
+    }
+  }
+  const now = Date.now(), btn = $("dr-send"); btn.disabled = true;
+  const plan = planFrom(p, { dueDays, refer, referDays, dueAt: now + dueDays * DAY, setting: $("dr-setting").value, grade, ncidme: $("dr-ncidme").checked, overridden, reason, approvedAt: now });
+  if (overridden) plan.twinChanged = false;
+  const level = levelOf(plan, cur);
+  try {
+    await Data.patch("visits", cur.code, { status: "reviewed", grade: { dr: grade, ncidme: plan.ncidme }, plan, triage: { level, note: $("dr-note").value.trim().slice(0, 600), at: now } });
+    const tid = cur.twinId || twinId(cur.patientKey, cur.eye);
+    const tw = await Data.get("twins", tid) || { id: tid, patientKey: cur.patientKey, eye: cur.eye, patientName: cur.patientName, age: cur.age, sex: cur.sex, diabetes: cur.diabetes, createdAt: cur.createdAt, history: [] };
+    tw.history = histFor(cur).map(e => e.code === cur.code ? { ...e, dr: grade } : e);
+    Object.assign(tw, { plan, dueAt: plan.dueAt, state: "scheduled", lastReviewed: cur.code, updatedAt: now });
+    await Data.set("twins", tid, tw);
+    toast(refer ? "Plan approved: referral sent and the patient sees it now." : `Plan approved: re-screen ${dueDays ? "by " + fmtDate(plan.dueAt) : "today"}. It's on the van's recall list.`);
+  } catch (e) { toast("Couldn't save the plan (" + (e?.code || "error") + ")."); }
   finally { btn.disabled = false; }
 };
+
+/* sample patient: three scans a plan apart, built with the same plan engine */
 $("seed-sample").onclick = async () => {
-  const seed = 1 + Math.floor(Math.random() * 4), s = sampleEyePhoto(seed), code = makeCode(), q = quality(s.canvas, s.iris);
-  const doc = { code, createdAt: Date.now(), patientName: "Sample patient " + "ABCD"[seed - 1], patientKey: "sample patient " + "abcd"[seed - 1], age: 52 + seed * 3, diabetes: true, visionLoss: false, eye: "OD", status: "waiting", sample: true,
-    iqa: { score: q.score, focus: q.focus, light: q.light, centred: q.centred, glare: q.glare, ai: null }, iris: s.iris,
-    irisData: irisCrop(s.canvas, s.iris, 384).toDataURL("image/jpeg", .85), thumbData: fit(s.canvas, 480).toDataURL("image/jpeg", .72) };
-  try { await Data.put(code, doc); S.selected = null; setTimeout(() => selectVisit(code), 120); toast("Sample visit added to the queue."); } catch (e) { toast("Couldn't add a sample (" + (e?.code || "error") + ")."); }
+  const seed = 1 + Math.floor(Math.random() * 4), L = "ABCD"[seed - 1], name = "Sample patient " + L, key = keyOf(name), eye = "OD", sex = "F", device = "cirrus", tid = twinId(key, eye);
+  const s = sampleEyePhoto(seed), q = quality(s.canvas, s.iris);
+  const irisData = irisCrop(s.canvas, s.iris, 384).toDataURL("image/jpeg", .85), thumbData = fit(s.canvas, 480).toDataURL("image/jpeg", .72);
+  const N = NORMAL.cirrus, shape = { inner: { S: 4, N: 6, I: 2, T: -8 }, outer: { S: 2, N: 16, I: -4, T: -14 } };
+  const octs = [[262, 4, 1], [281, 13, 4], [312, 32, 9]].map(([cst, di, dout]) => ({ device, simulated: true, cst,
+    inner: Object.fromEntries(Q4.map(k => [k, N.inner + shape.inner[k] + di])), outer: Object.fromEntries(Q4.map(k => [k, N.outer + shape.outer[k] + dout])) }));
+  const notes = ["Mild changes from diabetes. We'll check again when the van returns next year.", "Your scan shows the centre of your retina slowly getting thicker, so we'd like to see you sooner."];
+  const visits = [], hist = []; let t = 0;
+  for (let i = 0; i < 3; i++) {
+    const v = { code: makeCode(), createdAt: t, patientName: name, patientKey: key, twinId: tid, age: 58, sex, diabetes: true, visionLoss: false, eye, sample: true, status: "waiting",
+      iqa: { score: q.score, focus: q.focus, light: q.light, centred: q.centred, glare: q.glare, ai: null }, iris: s.iris, irisData, thumbData, oct: octs[i] };
+    hist.push({ code: v.code, at: t, oct: v.oct });
+    if (i < 2) {
+      const p = propose(v, seriesFor(hist, v.code, device), "mild", false, "low");
+      v.plan = planFrom(p, { dueAt: t + p.dueDays * DAY, setting: "low", grade: "mild", ncidme: false, approvedAt: t });
+      v.grade = { dr: "mild", ncidme: false }; v.status = "reviewed";
+      v.triage = { level: levelOf(v.plan, v), note: notes[i], at: t };
+      hist[i].dr = "mild"; t += p.dueDays * DAY;
+    }
+    visits.push(v);
+  }
+  const shift = Date.now() - t;
+  visits.forEach(v => { v.createdAt += shift; if (v.plan) { v.plan.dueAt += shift; v.plan.approvedAt += shift; v.triage.at += shift; } });
+  hist.forEach(h => h.at += shift);
+  const twin = { id: tid, patientKey: key, patientName: name, eye, sex, age: 58, diabetes: true, history: hist, plan: visits[1].plan, dueAt: visits[1].plan.dueAt,
+    state: "awaiting-review", latestCode: visits[2].code, lastReviewed: visits[1].code, createdAt: visits[0].createdAt, updatedAt: Date.now(), sample: true };
+  try {
+    for (const v of visits) await Data.set("visits", v.code, v);
+    await Data.set("twins", tid, twin);
+    S.selected = null; setTimeout(() => selectVisit(visits[2].code), 150);
+    toast(name + " added: 3 scans over " + fmtDays((Date.now() - visits[0].createdAt) / DAY) + ", the newest waiting for review.");
+  } catch (e) { toast("Couldn't add the sample (" + (e?.code || "error") + ")."); }
 };
 
 /* ---------------- patient ---------------- */
-const resultCopy = {
+const legacyCopy = {
   green: ["No signs that need action", "Your next eye check is in about 12 months, at the next van visit to your area."],
   amber: ["Please come back for a re-check", "The specialist would like to look again in 3–6 months. The van will remind you."],
   red: ["Please go to your hospital appointment today", "A same-day appointment has been booked for you, and a health worker will go with you."]
 };
+function patientResult(v) {
+  const lvl = v.triage.level, p = v.plan;
+  const note = v.triage.note ? `<p style="margin:0"><b>From the specialist:</b> ${esc(v.triage.note)}</p>` : "";
+  if (!p) { const [h, b] = legacyCopy[lvl]; return `<div class="result ${lvl}"><h3>${h}</h3><p style="margin:0">${b}</p>${note}</div>`; }
+  const head = v.visionLoss ? "Please go to your hospital appointment today" : { red: "Please see an eye specialist soon", amber: "Please come back for an earlier check", green: "No signs that need action now" }[lvl];
+  const prev = prevOctOf(v, histFor(v));
+  const parts = [];
+  if (p.refer) parts.push(`A referral to an eye specialist has been made. Please go ${p.referDays <= 0 ? "today. A health worker will go with you" : "within " + fmtDays(p.referDays)}.`);
+  parts.push(`<b>Next eye check:</b> ${p.dueDays <= 0 ? "today" : "by " + fmtDate(p.dueAt)}${p.refer ? "" : ", when the van visits your area"}.`);
+  if (v.oct) parts.push(`The scan measured the centre of your retina at ${v.oct.cst} µm${prev ? ` (last time ${prev.cst} µm)` : ""}. Your specialist follows this number over time.`);
+  return `<div class="result ${lvl}"><h3>${head}</h3>${parts.map(x => `<p style="margin:0">${x}</p>`).join("")}${note}</div>`;
+}
 function openPatient(code) {
   code = code.trim().toUpperCase(); if (!code) return;
   S.ptUnsub?.(); S.ptCode = code; store.set("eyetwin.code", code); $("pt-code").value = code;
-  let shownFor = null;
-  S.ptUnsub = Data.watchOne(code, async v => {
+  S.ptUnsub = Data.watchDoc("visits", code, async v => {
     if (!v) { $("pt-status").hidden = true; $("pt-msg").textContent = "No visit found for " + code + ". Check the code with the operator."; return; }
     $("pt-msg").textContent = ""; $("pt-status").hidden = false;
     $("pt-hello").textContent = "Hello, " + v.patientName;
     const reviewed = v.status === "reviewed";
-    const steps = [["Photo taken", "Captured " + ago(v.createdAt), true], ["Specialist review", reviewed ? "Reviewed " + ago(v.triage.at) : (v.status === "urgent" ? "Marked urgent — a specialist is looking now" : "Waiting for a specialist"), reviewed], ["Your result", reviewed ? "Ready below" : "Appears here as soon as it's ready", reviewed]];
+    const steps = [["Photo and scan taken", "Captured " + ago(v.createdAt), true], ["Specialist review", reviewed ? "Reviewed " + ago(v.triage.at) : (v.status === "urgent" ? "Marked urgent: a specialist is looking now" : "Waiting for a specialist"), reviewed], ["Your result and next steps", reviewed ? "Ready below" : "Appears here as soon as it's ready", reviewed]];
     $("pt-timeline").innerHTML = steps.map(([t, s, done], i) => `<li class="${done ? "done" : (i === steps.findIndex(x => !x[2]) ? "now" : "")}"><span class="dot">${done ? "✓" : i + 1}</span><div><b>${t}</b><span>${esc(s)}</span></div></li>`).join("");
-    if (reviewed) { const [h, p] = resultCopy[v.triage.level]; $("pt-result").innerHTML = `<div class="result ${v.triage.level}"><h3>${h}</h3><p style="margin:0">${p}</p>${v.triage.note ? `<p style="margin:0"><b>From the specialist:</b> ${esc(v.triage.note)}</p>` : ""}</div>`; }
-    else $("pt-result").innerHTML = "";
-    if (shownFor !== v.code) { shownFor = v.code; $("pt-stage-note").textContent = "This is a 3D model rebuilt from the photo of your eye."; await showInViewer(ensureViewer("pt", "pt-stage"), v); }
+    $("pt-result").innerHTML = reviewed ? patientResult(v) : "";
+    $("pt-stage-note").textContent = v.oct ? "Your eye in 3D, built from your photo. Macula shows the retina thickness the scan measured." : "This is a 3D model rebuilt from the photo of your eye.";
+    await showInViewer("pt", ensureViewer("pt", "pt-stage"), v);
   });
 }
 $("pt-form").addEventListener("submit", e => { e.preventDefault(); openPatient($("pt-code").value); });
@@ -727,7 +1202,7 @@ async function boot() {
   setRole(["operator", "doctor", "patient"].includes(start) ? start : "operator");
   setPhoto(s0.canvas, s0.iris, true);
   ensureViewer("op", "op-stage").setRetina(sampleFundus(1));
-  const live = (db) => { Data.watchAll(list => { S.visits = list; renderQueue(); if (S.selected) { const still = list.find(v => v.code === S.selected); if (still && S.role === "doctor") { const cur = S.viewing; selectVisit(S.selected, cur !== S.selected); if (cur !== S.selected) S.viewing = cur; } } }); };
+  updateOctPreview();
   const c = window.claude;
   let db = null, assets = null;
   if (c?.use) { [db, assets, sample] = await Promise.all([c.use("db"), c.use("assets"), c.use("sample")]); }
@@ -735,11 +1210,17 @@ async function boot() {
   $("sync").classList.toggle("live", !!db);
   $("sync-text").textContent = db ? "Live sync · all devices" : "This device only";
   if (sample) { const lim = await sample.limits().catch(() => null); $("ai-check").hidden = !lim?.images; }
-  live(db);
+  Data.watchCol("twins", "updatedAt", list => {
+    S.twins = list; renderRecall();
+    if ($("op-name").value.trim()) checkReturning();
+    if (S.selected && S.role === "doctor") { const v = S.visits.find(x => x.code === S.viewing); if (v) renderTwin(v); }
+  });
+  Data.watchCol("visits", "createdAt", list => {
+    S.visits = list; renderQueue();
+    if (S.selected && S.role === "doctor") { const still = list.find(v => v.code === S.selected); if (still) { const cur = S.viewing; selectVisit(S.selected); if (cur !== S.selected && list.some(v => v.code === cur)) selectVisit(cur, true); } }
+  });
   const saved = store.get("eyetwin.code"); if (saved) openPatient(saved);
 }
 boot();
 })();
 </script>
-
-</html>
